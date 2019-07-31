@@ -20,6 +20,12 @@
 (threshold! img 150)
 (u/imshow img)
 
+(defn get-channel
+  [img idx]
+  (let [channels (cv/new-arraylist)]
+    (cv/split img channels)
+    (nth channels idx)))
+
 (def channels (cv/new-arraylist))
 (cv/split img channels)
 (count channels)
@@ -53,12 +59,29 @@
   [theta]
   (* 180 (/ theta Math/PI)))
 
+(defn mean [coll]
+  (let [sum (apply + coll)
+        count (count coll)]
+    (if (pos? count)
+      (/ sum count)
+      0)))
+
+(defn median [coll]
+  (let [sorted (sort coll)
+        cnt (count sorted)
+        halfway (quot cnt 2)]
+    (if (odd? cnt)
+      (nth sorted halfway) ; (1)
+      (let [bottom (dec halfway)
+            bottom-val (nth sorted bottom)
+            top-val (nth sorted halfway)]
+        (mean [bottom-val top-val]))))) ; (2)
+
 (defn calc-degree
   "计算图片倾斜角度，返回角度和中间结果图"
   [img]
   (let [edges (-> img
                   cv/clone
-                  (cv/cvt-color! cv/COLOR_BGR2GRAY)
                   (cv/canny! 50. 200. 3))
         lines (cv/new-mat)
         _ (cv/hough-lines edges lines 1 (/ Math/PI 180) 180 0 0)
@@ -78,11 +101,11 @@
                        (Math/round (- x0 (* 1000 (* -1 b))))
                        (Math/round (- y0 (* 1000 a))))]
               (cv/line result pt1 pt2 color/black 1)))
-        sum (->> (map #(-> (.get lines %1 0)
-                           (nth 1))
-                      (range (.rows lines)))
-                 (reduce +))
-        angel (-> (/ sum (.rows lines))
+        thetas (map #(-> (.get lines %1 0)
+                         (nth 1))
+                    (range (.rows lines)))
+        _ (println "thetas:" thetas)
+        angel (-> (median thetas)
                   degree-trans
                   (- 90))]
     [angel result]))
@@ -97,19 +120,32 @@
 
 (def img (cv/imread "./resources/text.jpg"))
 (def img (cv/imread "./resources/qingdan.jpg"))
+(def img (cv/imread "./resources/test2.jpg"))
+
+(def img (get-channel img 2))
+(show-pic! img)
 
 (let [[ang res] (calc-degree img)]
      (def ang ang)
      (def res res))
 (show-pic! res)
-(rotate-by! img res)
+(rotate-by! img ang)
 (show-pic! img)
+
+(let [[ang res] (calc-degree horz)]
+  (def ang ang)
+  (def res res))
+(show-pic! res)
+(rotate-by! img ang)
+(show-pic! img)
+
 
 ;;;;;;;;;;;;;;;;;;
 ;;;; 自动阈值二值化
 (def gray (cv/new-mat))
 (cv/cvt-color img gray cv/COLOR_BGR2GRAY)
 (show-pic! gray)
+(def gray (cv/clone img))
 (def bw (cv/new-mat))
 (cv/adaptive-threshold (cv/bitwise-not! gray)
                         bw

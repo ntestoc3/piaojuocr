@@ -14,7 +14,7 @@
                                         ;[origami "4.0.0-1" :exclusions [opencv/opencv-native]]
                                         ;[opencv/opencv-native "4.0.0-1" :classifier "osx_64"]
                  [opencv/opencv-native "4.0.1-0" :classifier "linux_64"]
-                                        ;[opencv/opencv-native "4.0.0-1" :classifier "windows_64"]
+                 [opencv/opencv-native "4.0.1-0" :classifier "windows_64"]
                  ]
   :omit-source true
   :main ^:skip-aot piaojuocr.core
