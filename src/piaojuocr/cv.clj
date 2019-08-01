@@ -6,15 +6,47 @@
             [seesaw.core :as gui]
             [seesaw.icon :as icon]
             [piaojuocr.ocr :as ocr]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log])
+  (:import java.awt.Color))
 
 (defn show-pic!
-  [mat]
-  (let [f (gui/frame :title "pic view")
-        pic (gui/label "")]
-    (.setIcon pic (gui/icon (u/mat-to-buffered-image mat)))
-    (gui/config! f :content (gui/scrollable pic))
-    (-> f gui/pack! gui/show!)))
+  "显示图片，gray表示是否为灰度图"
+  ([mat] (show-pic! mat false))
+  ([mat gray]
+   (let [f (gui/frame :title "pic view")
+         mat2 (if gray
+                (-> mat
+                    cv/clone
+                    (cv/cvt-color! cv/COLOR_GRAY2BGR))
+                mat)
+         img (u/mat-to-buffered-image mat2)
+         rgb-txt (gui/label "X: Y: R: G: B:") ;; 必须是rgb图片，值才准确
+         pic (gui/label :text ""
+                        :halign :left
+                        :valign :top
+                        :background :white
+                        :listen [:mouse-motion
+                                 (fn [e]
+                                   (let [x (.getX e)
+                                         y (.getY e)]
+                                     (when (and (< x (.getWidth img))
+                                                (< y (.getHeight img)))
+                                       (let [color (-> (.getRGB img x y)
+                                                       (Color.  true))]
+                                         (gui/text! rgb-txt (format "X: %d Y: %d R: %d G: %d B: %d"
+                                                                    x y
+                                                                    (.getRed color)
+                                                                    (.getGreen color)
+                                                                    (.getBlue color)))))))])
+         content (gui/vertical-panel
+                  :items [rgb-txt
+                          (gui/scrollable pic)])]
+     (.setIcon pic (gui/icon img))
+     (gui/config! f :content content)
+     (-> f gui/pack! gui/show!))))
+
+(require '[seesaw.dev :as dev])
+(dev/show-options (gui/label))
 
 (->
  (cv/imread "resources/cat.jpg")
@@ -33,7 +65,7 @@
 (show-pic! mat)
 
 (def mat (cv/new-mat 30 30 cv/CV_8UC1 (cv/new-scalar 105.)))
-(show-pic! mat)
+(show-pic! mat true)
 
 (->>
  (cv/new-scalar 128.)
@@ -140,6 +172,7 @@
 ;; flip
 (def neko (cv/imread "resources/cat.jpg" cv/IMREAD_REDUCED_COLOR_4))
 (u/imshow neko)
+(show-pic! neko)
 
 (-> neko
     (cv/clone)
@@ -202,15 +235,16 @@
 (def dst
   (u/matrix-to-matofpoint2f [[2 0]
                              [5 5]
-                             [4 6]]))
+                             [5 6]]))
 (def transform-mat (cv/get-affine-transform src dst))
+(cv/dump transform-mat)
 
 (-> neko
     cv/clone
     (cv/warp-affine! transform-mat (.size neko))
     (show-pic!))
 
-;;;;; 过滤mat
+;;;;; 过滤mat  滤波
 ;; 手动过滤
 (defn filter-buffer!
   "过滤某个channel"
@@ -302,6 +336,7 @@
  (cv/threshold! 150 250 cv/THRESH_BINARY)
  (cv/dump))
 
+
 ; 反向操作
 (->
  (u/matrix-to-mat [[0 50 100]
@@ -320,7 +355,7 @@
 (-> "resources/cat.jpg"
     (cv/imread cv/IMREAD_REDUCED_COLOR_4)
     (cv/cvt-color! cv/COLOR_BGR2GRAY)
-    (cv/adaptive-threshold! 255 cv/ADAPTIVE_THRESH_MEAN_C cv/THRESH_BINARY 9 20.)
+    (cv/adaptive-threshold! 255 cv/ADAPTIVE_THRESH_MEAN_C cv/THRESH_BINARY 55 -3.)
     (show-pic!))
 
 ;;; 掩码操作
@@ -357,3 +392,64 @@
 (show-pic! cl3)
 
 ;;; blurring 模糊，虚化
+(-> neko
+    cv/clone
+    (cv/blur! (cv/new-size 3 3))
+    (show-pic!))
+
+(->> (range 3 10 2)
+     (map #(-> neko (cv/clone) (cv/blur! (cv/new-size % %))))
+     (cv/hconcat!)
+     (show-pic!))
+
+(-> "resources/code.png"
+    (cv/imread)
+    (cv/cvt-color! cv/COLOR_BGR2GRAY)
+    (cv/gaussian-blur! (cv/new-size 5 5) 0) ; sigma为0,不要太平滑
+    (cv/threshold! 210 250 cv/THRESH_BINARY)
+    (cv/imwrite "code.jpg")
+    (show-pic! true))
+
+(-> (cv/imread "code.jpg" cv/IMREAD_REDUCED_COLOR_8)
+    cv/dump)
+
+; 高斯模糊， 多用于去除噪声
+(-> neko
+    cv/clone
+    (cv/gaussian-blur! (cv/new-size 5 5) 17)
+    (show-pic!))
+
+; 双边模糊，相当于背景虚化, 可以帮助提取轮廓
+(-> neko
+    cv/clone
+    (cv/bilateral-filter! 9 9 7)
+    (show-pic!))
+
+(-> neko
+    cv/clone
+    (cv/cvt-color! cv/COLOR_BGR2GRAY)
+    (cv/bilateral-filter! 9 9 7)
+    (cv/canny! 50. 250. 3 true)
+    (cv/bitwise-not!)
+    (show-pic!))
+
+; 为什么使用双边过滤的原因，对比
+(-> neko
+    cv/clone
+    (cv/cvt-color! cv/COLOR_BGR2GRAY)
+    (cv/blur! (cv/new-size 3 3))
+    (cv/canny! 50. 250. 3 true)
+    (cv/bitwise-not!)
+    (show-pic!))
+
+; median blur
+(-> neko
+    cv/clone
+    (cv/median-blur! 27)
+    (show-pic!))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 颜色操作，增强或降低颜色
+;; threshold 限制通道值
+;; set-to使用掩码
+
