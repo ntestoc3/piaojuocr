@@ -1,50 +1,63 @@
 (ns piaojuocr.image
   (:require [opencv4.core :as cv]
             [opencv4.utils :as u]
-            [opencv4.colors.rgb :as color]
+            [opencv4.colors.rgb :as rgb]
+            [opencv4.colors.html :as html]
             [seesaw.core :as gui]
             [seesaw.icon :as icon]
             [piaojuocr.ocr :as ocr]
             [taoensso.timbre :as log])
+  (:import java.awt.Color)
   (:use [seesaw.chooser]))
+
+(defn rgb->hsv
+  [r g b]
+  (let [mat (cv/new-mat 1 1 cv/CV_8UC3 (cv/new-scalar b g r))]
+    (cv/cvt-color! mat cv/COLOR_BGR2HSV)
+    (map int (.get mat 0 0))))
+
+(defn show-pic!
+  "显示图片，gray表示是否为灰度图"
+  ([mat] (show-pic! mat false))
+  ([mat gray]
+   (let [f (gui/frame :title "pic view")
+         mat2 (if gray
+                (-> mat
+                    cv/clone
+                    (cv/cvt-color! cv/COLOR_GRAY2BGR))
+                mat)
+         img (u/mat-to-buffered-image mat2)
+         rgb-txt (gui/label "X: Y: R: G: B:") ;; 必须是rgb图片，值才准确
+         pic (gui/label :text ""
+                        :halign :left
+                        :valign :top
+                        :background :white
+                        :listen [:mouse-motion
+                                 (fn [e]
+                                   (let [x (.getX e)
+                                         y (.getY e)]
+                                     (when (and (< x (.getWidth img))
+                                                (< y (.getHeight img)))
+                                       (let [color (-> (.getRGB img x y)
+                                                       (Color.  true))
+                                             r (.getRed color)
+                                             g (.getGreen color)
+                                             b (.getBlue color)
+                                             [h s v] (rgb->hsv r g b)]
+                                         (gui/text! rgb-txt (format "X: %d Y: %d, R: %d G: %d B: %d, H: %d S: %d V: %d"
+                                                                    x y r g b h s v))))))])
+         content (gui/vertical-panel
+                  :items [rgb-txt
+                          (gui/scrollable pic)])]
+     (.setIcon pic (gui/icon img))
+     (gui/config! f :content content)
+     (-> f gui/pack! gui/show!))))
 
 (defn threshold!
   [source thresh]
   (-> source
       (cv/cvt-color! cv/COLOR_BGR2GRAY)
       (cv/threshold! thresh 255 cv/THRESH_BINARY)))
-
-
-(def file (.getPath (clojure.java.io/resource "test.jpg")))
-(def img (cv/imread file))
-(threshold! img 150)
-(u/imshow img)
-
-(defn get-channel
-  [img idx]
-  (let [channels (cv/new-arraylist)]
-    (cv/split img channels)
-    (nth channels idx)))
-
-(def channels (cv/new-arraylist))
-(cv/split img channels)
-(count channels)
-(def red (nth channels 2))
-(cv/threshold! red 150 255 cv/THRESH_BINARY)
-
-(defn show-pic!
-  [mat]
-  (let [f (gui/frame :title "pic view")
-        pic (gui/label "")]
-    (.setIcon pic (gui/icon (u/mat-to-buffered-image mat)))
-    (gui/config! f :content (gui/scrollable pic))
-    (-> f gui/pack! gui/show!)))
-
-(show-pic! img)
-
-(show-pic! red)
-(u/resize-by red 0.5)
-(cv/imwrite red "red_binary.jpg")
 
 (def r1 (ocr/general "red_binary.jpg" {:language-type "CHN_ENG"
                                        :probability "true"}))
@@ -79,12 +92,12 @@
 
 (defn calc-degree
   "计算图片倾斜角度，返回角度和中间结果图"
-  [img]
+  [img rho min-intersections min-length]
   (let [edges (-> img
                   cv/clone
-                  (cv/canny! 50. 200. 3))
+                  (cv/canny! 50. 200.))
         lines (cv/new-mat)
-        _ (cv/hough-lines edges lines 1 (/ Math/PI 180) 180 0 0)
+        _ (cv/hough-lines-p edges lines rho (/ Math/PI 180) min-intersections min-length 0)
         result (cv/clone img)
         _ (dotimes [i (.rows lines)]
             (let [val_ (.get lines i 0)
@@ -100,14 +113,14 @@
                   pt2 (cv/new-point
                        (Math/round (- x0 (* 1000 (* -1 b))))
                        (Math/round (- y0 (* 1000 a))))]
-              (cv/line result pt1 pt2 color/black 1)))
+              (cv/line result pt1 pt2 rgb/green 1)))
         thetas (map #(-> (.get lines %1 0)
                          (nth 1))
                     (range (.rows lines)))
         _ (println "thetas:" thetas)
-        angel (-> (median thetas)
-                  degree-trans
-                  (- 90))]
+        angel (some-> (median thetas)
+                      degree-trans
+                      (- 90))]
     [angel result]))
 
 (defn rotate-by!
@@ -118,127 +131,100 @@
          (cv/new-point (/ (.width img) 2) (/ (.height img) 2)) angle 1)]
     (cv/warp-affine! img M2 (.size img))))
 
+
+(defn approx
+  "简化多边形的边"
+  [c]
+  (let [m2f (cv/new-matofpoint2f (.toArray c))
+        len (cv/arc-length m2f true)
+        ret (cv/new-matofpoint2f)]
+    (cv/approx-poly-dp m2f ret (* 0.02 len) true)
+    ret))
+
+(defn how-many-sides
+  [c]
+  (-> (approx c)
+      .toList
+      .size))
+
+(defn which-color
+  "颜色选择"
+  [c]
+  (let [side (how-many-sides c)]
+    (case side
+      1 rgb/pink
+      2 rgb/magenta-
+      3 rgb/green
+      4 rgb/blue
+      5 rgb/yellow-1
+      6 rgb/cyan-2
+      rgb/orange)))
+
+(defn draw-contours!
+  [img contours]
+  (doall (map-indexed (fn [idx c]
+                        (cv/draw-contours img contours idx (which-color c) 3))
+                      (seq contours)))
+  img)
+
+
 (def img (cv/imread "./resources/text.jpg"))
 (def img (cv/imread "./resources/qingdan.jpg"))
 (def img (cv/imread "./resources/test2.jpg"))
+(def img (cv/imread "./resources/page1.jpg" cv/IMREAD_REDUCED_COLOR_4))
 
-(def img (get-channel img 2))
-(show-pic! img)
+(def target (-> img
+                cv/clone
+                (cv/cvt-color! cv/COLOR_BGR2GRAY)))
+(cv/threshold! target 160 255 cv/THRESH_BINARY_INV)
+(def kernel (cv/new-mat 7 25 cv/CV_8UC1))
+(cv/dilate! target kernel)
+(show-pic! target)
 
-(let [[ang res] (calc-degree img)]
-     (def ang ang)
-     (def res res))
-(show-pic! res)
-(rotate-by! img ang)
-(show-pic! img)
-
-(let [[ang res] (calc-degree horz)]
-  (def ang ang)
-  (def res res))
-(show-pic! res)
-(rotate-by! img ang)
-(show-pic! img)
-
-
-;;;;;;;;;;;;;;;;;;
-;;;; 自动阈值二值化
-(def gray (cv/new-mat))
-(cv/cvt-color img gray cv/COLOR_BGR2GRAY)
-(show-pic! gray)
-(def gray (cv/clone img))
-(def bw (cv/new-mat))
-(cv/adaptive-threshold (cv/bitwise-not! gray)
-                        bw
-                        255
-                        cv/ADAPTIVE_THRESH_MEAN_C
-                        cv/THRESH_BINARY
-                        15
-                        -2)
-(show-pic! bw)
-
-(def horz (cv/clone bw))
-(def vert (cv/clone bw))
-(def horiz-size (/ (.cols horz) 20))
-
-(def horiz_struct (cv/get-structuring-element cv/MORPH_RECT
-                                              (cv/new-size horiz-size 1)))
-
-(cv/erode! horz horiz_struct (cv/new-point -1 -1))
-(cv/dilate! horz horiz_struct (cv/new-point -1 -1))
-(show-pic! horz)
-
-(def rho 1)
-(def theta (/ Math/PI 90))
-(def min-intersections 30)
-(def min-line-length 10)
-(def max-line-gap 50)
 (def lines (cv/new-mat))
 
-(cv/hough-lines-p edges lines rho theta min-intersections min-line-length max-line-gap)
-
-(show-pic! lines)
-
-(def result (cv/clone img))
-(dotimes [i (.rows lines)]
-  (let [val (.get lines i 0)]
-    (cv/line result
-             (cv/new-point (nth val 0) (nth val 1))
-             (cv/new-point (nth val 2) (nth val 3))
-             color/red-2)
-    ))
-(show-pic! result)
-
-;;; 删除轮廓
-(def img1 (cv/imread file))
-(show-pic! img1)
-
-(def mask
-  (-> img1
-      (cv/cvt-color! cv/COLOR_BGR2GRAY)
-      cv/clone
-      (cv/threshold! 200 255 cv/THRESH_BINARY_INV)
-      (cv/median-blur! 7)))
-(show-pic! mask)
-
-(def masked-input (cv/clone mask))
-(cv/set-to masked-input (cv/new-scalar 0 0 0) mask)
-(cv/set-to masked-input (cv/new-scalar 255 255 255) (cv/bitwise-not! mask))
-(show-pic! masked-input)
-
 (def contours (cv/new-arraylist))
-(cv/find-contours
- masked-input
- contours
- (cv/new-mat)
- cv/RETR_TREE
- cv/CHAIN_APPROX_NONE)
+(-> target
+    cv/clone
+    (cv/canny! 50. 200.)
+    show-pic!
+    )
+(cv/find-contours contours (cv/new-mat) cv/RETR_LIST cv/CHAIN_APPROX_SIMPLE)
+(show-pic! target)
 
-(def exe-1 (cv/clone img1))
-(doseq [c contours]
-  (let [rect (cv/bounding-rect c)]
-    (cv/rectangle
-     exe-1
-     (cv/new-point (.x rect) (.y rect))
-     (cv/new-point (+ (.width rect) (.x rect)) (+ (.y rect) (.height rect)))
-     color/red-3
-     2)))
-(show-pic! exe-1)
-
-;;; 过滤countours
-(def interesting-contours
+(def my-contours
   (filter
    #(and
-     (> (cv/contour-area %) 100)
-     (< (.width (cv/bounding-rect %)) (- (.width img1) 10)))
+         (< (.height (cv/bounding-rect %)) 25)
+         (> (.width (cv/bounding-rect %)) 30))
    contours))
-(def exe-1 (cv/clone img1))
-(doseq [c interesting-contours]
-  (let [rect (cv/bounding-rect c)]
-    (cv/rectangle
-     exe-1
-     (cv/new-point (.x rect) (.y rect))
-     (cv/new-point (+ (.width rect) (.x rect)) (+ (.y rect) (.height rect)))
-     color/red-3
-     2)))
-(show-pic! exe-1)
 
+(def res (cv/clone img))
+(draw-contours! res my-contours)
+(show-pic! res)
+
+(def thetas (mapv (fn [c]
+                    (let [rect (cv/min-area-rect (cv/new-matofpoint2f (.toArray c)))
+                          angle (.angle rect)]
+                      (if (< (-> rect .size .width) (-> rect .size .height))
+                        (- 90 angle)
+                        (- angle))))
+                  my-contours))
+
+(defn most-freq
+  [cols]
+  (->> (frequencies cols)
+       (sort-by val)
+       last
+       first))
+
+(def out (cv/clone img))
+(def ang (- 180 (most-freq thetas)))
+(rotate-by! out ang)
+(show-pic! out)
+
+(let [[ang res] (calc-degree target 1 30 10)]
+  (def ang ang)
+  (def res res))
+
+(show-pic! res)
