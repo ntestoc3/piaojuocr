@@ -420,12 +420,25 @@
 
 
 (import 'org.opencv.objdetect.QRCodeDetector)
-(defn detect
+(defn resize-square!
+  "拉伸img为正方形"
+  [img]
+  (let [edge-len (max (.cols img)
+                      (.rows img))
+        new-size (cv/new-size edge-len edge-len)]
+    (cv/resize! img new-size)))
+
+(defn auto-decode
   [img]
   (let [dector (QRCodeDetector.)
         points (cv/new-mat)
         result (.detectAndDecode dector img points)]
-    [result points]))
+    (if (empty? result)
+      (let [new-img (cv/submat img (cv/bounding-rect points))]
+        (resize-square! new-img)
+        (cv/imwrite new-img "clean_code.jpg")
+        [(.detectAndDecode dector new-img) points])
+      [result points])))
 
 (defn draw-rect!
   ([img rect-mat] (draw-rect! img rect-mat rgb/green 2))
@@ -440,16 +453,9 @@
       width))
    img))
 
-(defn resize-code!
-  [img]
-  (let [edge-len (max (.cols img)
-                      (.rows img))
-        new-size (cv/new-size edge-len edge-len)]
-    (cv/resize! img new-size)
-    img))
 
 (def code (cv/imread "code.jpg"))
-(let [[r points]  (detect code)
+(let [[r points] (auto-decode code)
       rect (cv/bounding-rect points)]
   (println "decode str:" r)
   (draw-rect! code points)
