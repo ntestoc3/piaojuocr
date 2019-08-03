@@ -418,8 +418,43 @@
     (cv/imwrite "code.jpg")
     (show-pic! true))
 
-(-> (cv/imread "code.jpg" cv/IMREAD_REDUCED_COLOR_8)
-    cv/dump)
+
+(import 'org.opencv.objdetect.QRCodeDetector)
+(defn detect
+  [img]
+  (let [dector (QRCodeDetector.)
+        points (cv/new-mat)
+        result (.detectAndDecode dector img points)]
+    [result points]))
+
+(defn draw-rect!
+  ([img rect-mat] (draw-rect! img rect-mat rgb/green 2))
+  ([img rect-mat color width]
+   (let [rect (cv/bounding-rect rect-mat)]
+     (cv/rectangle
+      img
+      (cv/new-point (.x rect) (.y rect))
+      (cv/new-point (+ (.x rect) (.width rect))
+                    (+ (.y rect) (.height rect)))
+      color
+      width))
+   img))
+
+(defn resize-code!
+  [img]
+  (let [edge-len (max (.cols img)
+                      (.rows img))
+        new-size (cv/new-size edge-len edge-len)]
+    (cv/resize! img new-size)
+    img))
+
+(def code (cv/imread "code.jpg"))
+(let [[r points]  (detect code)
+      rect (cv/bounding-rect points)]
+  (println "decode str:" r)
+  (draw-rect! code points)
+  (show-pic! code))
+
 
 ; 高斯模糊， 多用于去除噪声
 (-> neko
@@ -1109,3 +1144,46 @@
     (cv/threshold! 160 250 cv/THRESH_BINARY)
     (cv/canny! 50 150)
     show-pic!)
+
+;;;;; 解决迷宫
+
+(def maze (cv/imread "resources/maze2.png"))
+
+(def maze (cv/imread "resources/maze3.jpg"))
+(def maze-bin (-> maze
+                  cv/clone
+                  (cv/cvt-color! cv/COLOR_BGR2GRAY)
+                  (cv/threshold! 200 255 cv/THRESH_BINARY_INV)
+                  ))
+(show-pic! maze-bin)
+(def contours (cv/new-arraylist))
+(cv/find-contours maze-bin contours (cv/new-mat) cv/RETR_EXTERNAL cv/CHAIN_APPROX_NONE)
+(def res (u/mat-from maze))
+(cv/set-to res rgb/green)
+(draw-contours! res contours)
+(show-pic! res)
+
+(def path (u/mat-from maze-bin))
+(cv/set-to path rgb/black)
+(cv/draw-contours path contours 0 color/white cv/FILLED)
+(cv/threshold! path 240 255 cv/THRESH_BINARY)
+(show-pic! path)
+
+(def kernel (cv/new-mat 19 19 cv/CV_8UC1))
+(cv/dilate! path kernel)
+(def path-erode (cv/new-mat))
+(cv/erode path path-erode kernel)
+(cv/absdiff path path-erode path)
+(cv/threshold! path 200 250 cv/THRESH_BINARY)
+(show-pic! path)
+
+(def path-c (u/mat-from maze))
+(cv/set-to path-c rgb/red-2)
+;; bitwise-and!实现有问题,不符合api标准
+;; (cv/bitwise-and path-c (cv/cvt-color! path cv/COLOR_GRAY2BGR) path-c)
+;; (show-pic! path-c)
+
+(let [res (cv/clone maze)]
+  (cv/copy-to path-c res path)
+  (show-pic! res))
+
