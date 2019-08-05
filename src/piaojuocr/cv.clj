@@ -454,6 +454,43 @@
    img))
 
 
+(defn approx
+  "简化多边形的边"
+  [c]
+  (let [m2f (cv/new-matofpoint2f (.toArray c))
+        len (cv/arc-length m2f true)
+        ret (cv/new-matofpoint2f)]
+    (cv/approx-poly-dp m2f ret (* 0.02 len) true)
+    ret))
+
+(defn how-many-sides
+  [c]
+  (-> (approx c)
+      .toList
+      .size))
+
+(defn which-color
+  "颜色选择"
+  [c]
+  (let [side (how-many-sides c)]
+    (println "side:" side)
+    (case side
+      1 rgb/pink
+      2 rgb/magenta-
+      3 rgb/green
+      4 rgb/blue
+      5 rgb/yellow-1
+      6 rgb/cyan-2
+      rgb/orange)))
+
+(defn draw-contours!
+  [img contours]
+  (doall (map-indexed (fn [idx c]
+                        (cv/draw-contours img contours idx (which-color c) 1))
+                      (seq contours)))
+  img)
+
+
 (def code (cv/imread "code.jpg"))
 (let [[r points] (auto-decode code)
       rect (cv/bounding-rect points)]
@@ -461,6 +498,61 @@
   (draw-rect! code points)
   (show-pic! code))
 
+
+(def code2 (cv/imread "resources/code2.jpg"))
+(show-pic! code2)
+
+(def target
+  (-> code2 cv/clone
+      (cv/cvt-color! cv/COLOR_RGB2HSV)
+      (in-range! (cv/new-scalar 0 0 0) (cv/new-scalar 200 10 255))
+      ))
+
+(show-pic! target)
+(def kernel (cv/new-mat 7 7 cv/CV_8UC1))
+(cv/morphology-ex! target cv/MORPH_CLOSE kernel)
+                                        ;(cv/erode! target kernel)
+(cv/gaussian-blur! target (cv/new-size 5 5) 0)
+(show-pic! target)
+
+
+(def contours (cv/new-arraylist))
+(cv/canny! target 50. 200.)
+(cv/find-contours target contours (cv/new-mat) cv/RETR_LIST cv/CHAIN_APPROX_SIMPLE
+                  (cv/new-point 0 0))
+
+(def output (cv/clone code2))
+(draw-contours! output contours)
+(show-pic! output)
+
+(def my-contours
+  (filter
+   #(and
+     (< 50 (.height (cv/bounding-rect %)))
+     (< 50 (.width (cv/bounding-rect %))))
+   contours))
+
+(def output (cv/clone code2))
+(draw-contours! output my-contours)
+(show-pic! output)
+
+(def rect (cv/bounding-rect (first my-contours)))
+(def target-code (cv/submat code2 rect))
+(show-pic! target-code)
+(cv/resize! target-code (cv/new-size 280 280))
+(cv/imwrite target-code "new-code.jpg")
+
+(-> target-code
+    cv/clone
+    (cv/cvt-color! cv/COLOR_BGR2GRAY)
+    (cv/threshold! 120 255 cv/THRESH_BINARY)
+    (cv/imwrite  "new-code2.jpg"))
+
+(let [[r points] (auto-decode code2)
+      rect (cv/bounding-rect points)]
+  (println "decode str:" r)
+  ;(draw-rect! code2 points)
+  (show-pic! code2))
 
 ; 高斯模糊， 多用于去除噪声
 (-> neko

@@ -68,6 +68,19 @@
 
 ;;;; 直线检测
 ;; 轮廓
+(defn draw-rect!
+  ([img rect-mat] (draw-rect! img rect-mat rgb/green 2))
+  ([img rect-mat color width]
+   (let [rect (cv/bounding-rect rect-mat)]
+     (cv/rectangle
+      img
+      (cv/new-point (.x rect) (.y rect))
+      (cv/new-point (+ (.x rect) (.width rect))
+                    (+ (.y rect) (.height rect)))
+      color
+      width))
+   img))
+
 (defn degree-trans
   [theta]
   (* 180 (/ theta Math/PI)))
@@ -151,6 +164,7 @@
   "颜色选择"
   [c]
   (let [side (how-many-sides c)]
+    (println "side:" side)
     (case side
       1 rgb/pink
       2 rgb/magenta-
@@ -163,65 +177,78 @@
 (defn draw-contours!
   [img contours]
   (doall (map-indexed (fn [idx c]
-                        (cv/draw-contours img contours idx (which-color c) 3))
+                        (cv/draw-contours img contours idx (which-color c) 1))
                       (seq contours)))
   img)
 
 
 (def img (cv/imread "./resources/text.jpg"))
 (def img (cv/imread "./resources/qingdan.jpg"))
-(def img (cv/imread "./resources/test2.jpg"))
-(def img (cv/imread "./resources/page1.jpg" cv/IMREAD_REDUCED_COLOR_4))
+(def img (cv/imread "./resources/test.jpg" cv/IMREAD_REDUCED_COLOR_4))
+(def img (cv/imread "./resources/wai4.jpg" cv/IMREAD_REDUCED_COLOR_4))
 
 (def target (-> img
                 cv/clone
                 (cv/cvt-color! cv/COLOR_BGR2GRAY)))
-(cv/threshold! target 160 255 cv/THRESH_BINARY_INV)
-(def kernel (cv/new-mat 7 25 cv/CV_8UC1))
+(cv/threshold! target 120 255 cv/THRESH_BINARY_INV)
+(def kernel (cv/new-mat 2 55 cv/CV_8UC1))
 (cv/dilate! target kernel)
+;(cv/erode! target kernel)
+(cv/gaussian-blur! target (cv/new-size 5 5) 0)
 (show-pic! target)
-
-(def lines (cv/new-mat))
 
 (def contours (cv/new-arraylist))
 (-> target
     cv/clone
     (cv/canny! 50. 200.)
-    show-pic!
+    (cv/find-contours contours (cv/new-mat) cv/RETR_CCOMP cv/CHAIN_APPROX_SIMPLE)
+   ; show-pic!
     )
-(cv/find-contours contours (cv/new-mat) cv/RETR_LIST cv/CHAIN_APPROX_SIMPLE)
 (show-pic! target)
+
+(defn approx
+  "简化多边形的边"
+  [c]
+  (let [m2f (cv/new-matofpoint2f (.toArray c))
+        len (cv/arc-length m2f true)
+        ret (cv/new-matofpoint2f)]
+    (cv/approx-poly-dp m2f ret (* 0.02 len) true)
+    ret))
 
 (def my-contours
   (filter
    #(and
-         (< (.height (cv/bounding-rect %)) 25)
-         (> (.width (cv/bounding-rect %)) 30))
+         (< 2 (.height (cv/bounding-rect %)) 50)
+         (< 30 (.width (cv/bounding-rect %))))
    contours))
 
 (def res (cv/clone img))
-(draw-contours! res my-contours)
-(show-pic! res)
-
 (def thetas (mapv (fn [c]
                     (let [rect (cv/min-area-rect (cv/new-matofpoint2f (.toArray c)))
+                          pts (make-array org.opencv.core.Point 4)
                           angle (.angle rect)]
+                      (.points rect pts)
+                      (doseq [i (range (count pts))]
+                        (cv/line res (nth pts i) (nth pts (mod (inc i) 4)) rgb/red-1))
                       (if (< (-> rect .size .width) (-> rect .size .height))
                         (- 90 angle)
                         (- angle))))
                   my-contours))
 
+(show-pic! res)
+
 (defn most-freq
   [cols]
   (->> (frequencies cols)
-       (sort-by val)
-       last
-       first))
+       (sort-by val)))
 
 (def out (cv/clone img))
-(def ang (- 180 (most-freq thetas)))
+(def ang (- 180 (-> (most-freq thetas)
+                    last
+                    first)))
 (rotate-by! out ang)
 (show-pic! out)
+(show-pic! img)
 
 (let [[ang res] (calc-degree target 1 30 10)]
   (def ang ang)
