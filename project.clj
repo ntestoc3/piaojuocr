@@ -6,7 +6,7 @@
   :repositories [["vendredi" "https://repository.hellonico.info/repository/hellonico/"]]
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [com.baidu.aip/java-sdk "4.11.3"] ; baidu ocr sdk
-                 [origami "4.1.1-1" :exclusions [opencv/opencv-native hellonico/gorilla-repl]]
+                 [origami "4.1.1-2" :exclusions [opencv/opencv-native hellonico/gorilla-repl]]
                  [seesaw "1.5.0"] ; swing GUI
                  [camel-snake-kebab/camel-snake-kebab "0.4.0"]
                  [com.taoensso/timbre "4.10.0"] ; logging
