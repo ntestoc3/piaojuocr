@@ -20,26 +20,6 @@
     (cv/cvt-color! mat cv/COLOR_BGR2HSV)
     (map int (.get mat 0 0))))
 
-(defprotocol MatView
-  (set-image [this mat] [this mat gray])
-  (get-image [this])
-  (viewer [this]))
-
-(deftype CVImageViewer [img! control]
-  MatView
-  (set-image [this mat] (set-image this mat false))
-  (set-image [_ mat gray]
-    (let [mat2 (if gray
-                 (-> mat
-                     cv/clone
-                     (cv/cvt-color! cv/COLOR_GRAY2BGR))
-                 mat)]
-      (reset! img! (u/mat-to-buffered-image mat2))))
-
-  (get-image [_] @img!)
-
-  (viewer [_] control))
-
 (defn make-pic-viewer [id]
   (let [rgb-txt (gui/label :id (replace-keyword #(str %1 "-txt") id)
                            :text "X: Y: R: G: B: H: S: V:") ;; 必须是rgb图片，值才准确
@@ -49,6 +29,7 @@
                        :halign :left
                        :valign :top
                        :background :white
+                       :user-data img
                        :listen [:mouse-motion
                                 (fn [e]
                                   (let [x (.getX e)
@@ -67,10 +48,21 @@
     (bind/bind img
                (bind/transform gui/icon)
                (bind/property pic :icon))
-    (->CVImageViewer img (gui/vertical-panel
-                          :items [rgb-txt
-                                  (gui/scrollable pic)]))))
+    (gui/vertical-panel
+     :items [rgb-txt
+             (gui/scrollable pic)])))
 
+(defn set-image!
+  ([root id mat] (set-image! root id mat false))
+  ([root id mat gray]
+   (when-let [img! (some-> (gui/select root [(->select-id id)])
+                           gui/user-data)]
+     (let [mat2 (if gray
+                  (-> mat
+                      cv/clone
+                      (cv/cvt-color! cv/COLOR_GRAY2BGR))
+                  mat)]
+       (reset! img! (u/mat-to-buffered-image mat2))))))
 
 (defn show-pic!
   "显示图片，gray表示是否为灰度图"
@@ -78,9 +70,10 @@
   ([mat gray]
    (let [f (gui/frame :title "pic view")
          image (make-pic-viewer :test)]
-     (set-image image mat gray)
-     (gui/config! f :content (viewer image))
-     (-> f gui/pack! gui/show!))))
+     (gui/config! f :content image)
+     (set-image! f :test mat gray)
+     (-> f gui/pack! gui/show!)
+     f)))
 
 (defn choose-pic
   "选择图片文件,返回文件路径"
@@ -113,7 +106,9 @@
    (cv/imwrite mat path)))
 
 (comment
-  (show-pic! (open-img))
+  (def f1 (show-pic! (open-img)))
+
+  (set-image! f1 :test (open-img))
 
   (choose-pic)
 
