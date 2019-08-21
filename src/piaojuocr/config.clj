@@ -1,0 +1,36 @@
+(ns piaojuocr.config
+  (:require [cprop.core :refer [load-config]]
+            [cprop.source :as source]))
+
+(def config (atom (load-config
+                   :file "config.edn"
+                   :merge
+                   [(source/from-system-props)
+                    (source/from-env)])))
+
+(defn get-config
+  "从全局配置和环境中 获取配置项k的值"
+  ([k] (get-config k nil))
+  ([k default] (get @config k default)))
+
+(defn get-in-config
+  "从全局配置和环境中 获取配置path的值"
+  [path]
+  (get-in @config path))
+
+(defn add-config!
+  "添加配置项到全局配置"
+  [k v]
+  (swap! config assoc k v))
+
+(defn add-in-config!
+  "添加配置项到全局配置"
+  [path v]
+  (swap! config assoc-in path v))
+
+(defn save-config!
+  ([] (save-config! "config.edn"))
+  ([file-name]
+   (spit file-name (-> (merge (load-config :file file-name)
+                              @config)
+                       pr-str))))
