@@ -55,13 +55,14 @@
   (let [frame (gui/frame
                :title "文字识别测试"
                :menubar menus)]
+    (gui/native!)
     (gui/config! frame :content (setting/make-view frame))  ; (make-main-panel)
+    (setting/init-ui)
     (-> frame gui/pack! gui/show!)))
 
 
 
 (comment
-
   (show-frame)
 
   )

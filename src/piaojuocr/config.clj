@@ -2,21 +2,28 @@
   (:require [cprop.core :refer [load-config]]
             [cprop.source :as source]))
 
-(def config (atom (load-config
-                   :file "config.edn"
-                   :merge
-                   [(source/from-system-props)
-                    (source/from-env)])))
+(def env (load-config
+          :file "config.edn"
+          :merge
+          [(source/from-system-props)
+           (source/from-env)]))
+
+(def config (atom {}))
 
 (defn get-config
   "从全局配置和环境中 获取配置项k的值"
   ([k] (get-config k nil))
-  ([k default] (get @config k default)))
+  ([k default] (or
+                (get @config k)
+                (get env k)
+                default)))
 
 (defn get-in-config
   "从全局配置和环境中 获取配置path的值"
   [path]
-  (get-in @config path))
+  (or
+   (get-in @config path)
+   (get-in env path)))
 
 (defn add-config!
   "添加配置项到全局配置"
@@ -29,7 +36,7 @@
   (swap! config assoc-in path v))
 
 (defn save-config!
-  ([] (save-config! "config.edn"))
+  ([] (save-config! (or (:conf env) "config.edn")))
   ([file-name]
    (spit file-name (-> (merge (load-config :file file-name)
                               @config)

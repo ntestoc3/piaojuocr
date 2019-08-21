@@ -17,7 +17,8 @@
 (def all-themes (get-substance-laf))
 
 (defn set-laf [laf-info]
-  (SubstanceCortex$GlobalScope/setSkin laf-info))
+  (gui/invoke-later
+   (SubstanceCortex$GlobalScope/setSkin laf-info)))
 
 (defn init-ui []
   (gui/native!)
@@ -30,13 +31,12 @@
   (gui/combobox
    :model    (keys all-themes)
    :listen   [:selection (fn [e]
-                           ;; Invoke later because CB doens't like changing L&F
-                           ;; while it's doing stuff.
-                           (gui/invoke-later
-                            (-> e
-                                gui/selection
-                                all-themes
-                                set-laf)))]))
+                           (let [theme (gui/selection e)]
+                             (println "selected" theme)
+                             (config/add-config! :theme theme)
+                             (-> theme
+                                 all-themes
+                                 set-laf)))]))
 
 ;;;; 设置面板
 (defn text-config-panel

@@ -106,7 +106,8 @@
    (cv/imwrite mat path)))
 
 (comment
-  (def f1 (show-pic! (open-img)))
+  (def f1 (some-> (open-img)
+                  show-pic!))
 
   (set-image! f1 :test (open-img))
 
