@@ -16,7 +16,8 @@
                                         ;[opencv/opencv-native "4.0.0-1" :classifier "osx_64"]
                  [opencv/opencv-native "4.1.1-1" :classifier "linux_64"]
                  [opencv/opencv-native "4.1.1-1" :classifier "windows_64"]
-                 [com.github.insubstantial/substance "7.3"]
+
+                 [org.pushing-pixels/radiance-substance "2.0.1"]
 
                  [cprop/cprop "0.1.13"] ;; env manage
                  ]

@@ -4,21 +4,20 @@
             [seesaw.mig :refer [mig-panel]]
             [piaojuocr.util :as util]
             [piaojuocr.config :as config])
-  (:import org.pushingpixels.substance.api.SubstanceLookAndFeel
-           org.pushingpixels.substance.api.skin.SubstanceGraphiteLookAndFeel
+  (:import org.pushingpixels.substance.api.SubstanceCortex$GlobalScope
            [javax.swing JFrame UIManager]
            ))
 
 
 (defn get-substance-laf []
-  (->> (SubstanceLookAndFeel/getAllSkins)
+  (->> (SubstanceCortex$GlobalScope/getAllSkins)
        (map (fn [[k v]] [k (.getClassName v)]))
        (into {})))
 
 (def all-themes (get-substance-laf))
 
 (defn set-laf [laf-info]
-  (SubstanceLookAndFeel/setSkin laf-info))
+  (SubstanceCortex$GlobalScope/setSkin laf-info))
 
 (defn init-ui []
   (gui/native!)
