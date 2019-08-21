@@ -6,36 +6,19 @@
             [piaojuocr.config :as config])
   (:import org.pushingpixels.substance.api.SubstanceLookAndFeel
            org.pushingpixels.substance.api.skin.SubstanceGraphiteLookAndFeel
-           com.bulenkov.darcula.DarculaLaf
            [javax.swing JFrame UIManager]
            ))
 
-(defn get-installed-laf []
-  (->> (UIManager/getInstalledLookAndFeels)
-       (map (fn [laf] [(.getName laf)
-                       {:type :system
-                        :class (.getClassName laf)}]))
-       (into {})))
 
 (defn get-substance-laf []
   (->> (SubstanceLookAndFeel/getAllSkins)
-       (map (fn [[k v]] [k
-                         {:type :substance
-                          :class (.getClassName v)}]))
+       (map (fn [[k v]] [k (.getClassName v)]))
        (into {})))
 
-(defn get-darcula-laf []
-  {"Darcula" {:type :system
-              :class (DarculaLaf.)}})
-
-(def all-themes (merge (get-installed-laf)
-                       (get-substance-laf)
-                       (get-darcula-laf)))
+(def all-themes (get-substance-laf))
 
 (defn set-laf [laf-info]
-  (case (:type laf-info)
-    :system (UIManager/setLookAndFeel (:class laf-info))
-    :substance (SubstanceLookAndFeel/setSkin (:class laf-info))))
+  (SubstanceLookAndFeel/setSkin laf-info))
 
 (defn init-ui []
   (gui/native!)

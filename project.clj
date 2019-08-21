@@ -17,8 +17,6 @@
                  [opencv/opencv-native "4.1.1-1" :classifier "linux_64"]
                  [opencv/opencv-native "4.1.1-1" :classifier "windows_64"]
                  [com.github.insubstantial/substance "7.3"]
-                 ;; https://mvnrepository.com/artifact/com.bulenkov/darcula
-                 [com.bulenkov/darcula "2018.2"]
 
                  [cprop/cprop "0.1.13"] ;; env manage
                  ]
