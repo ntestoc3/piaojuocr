@@ -1,23 +1,26 @@
 (ns piaojuocr.ocr
-  (:require [camel-snake-kebab.core :refer :all])
+  (:require [camel-snake-kebab.core :refer :all]
+            [piaojuocr.config :as config])
   (:import com.baidu.aip.ocr.AipOcr))
 
-(def app-id "16839383")
-(def api-key "F6fUFb2V93lEtSh0AfiIiknk")
-(def sec-key "jsmwqoRNX3YnOls70AVgXG7Fb4nafDqf")
 
-(def aip-client (AipOcr. app-id api-key sec-key))
+(def aip-client (AipOcr.
+                 (config/get-config :app-id)
+                 (config/get-config :api-key)
+                 (config/get-config :sec-key)))
+
 (doto aip-client
   (.setConnectionTimeoutInMillis 2000)
-  (.setSocketTimeoutInMillis 60000)
-  )
+  (.setSocketTimeoutInMillis 60000))
 
 (defn json->map
   [json]
   (condp instance? json
     org.json.JSONObject
-    (->> (map (fn [k] [(->kebab-case-keyword k) (-> (.get json k)
-                                                    json->map)]) (.keySet json))
+    (->> (map (fn [k] [(->kebab-case-keyword k)
+                       (-> (.get json k)
+                           json->map)])
+              (.keySet json))
          (into {}))
 
     org.json.JSONArray

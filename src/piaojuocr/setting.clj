@@ -2,6 +2,7 @@
   (:require [seesaw.core :as gui]
             [seesaw.border :as border]
             [seesaw.mig :refer [mig-panel]]
+            [seesaw.font :refer [font default-font]]
             [piaojuocr.util :as util]
             [piaojuocr.config :as config])
   (:import org.pushingpixels.substance.api.SubstanceCortex$GlobalScope
@@ -29,7 +30,9 @@
 
 (defn laf-selector []
   (gui/combobox
-   :model    (keys all-themes)
+   :model    (-> (keys all-themes)
+                 sort)
+   :selected-item (config/get-config :theme "Moderate")
    :listen   [:selection (fn [e]
                            (let [theme (gui/selection e)]
                              (println "selected" theme)
@@ -41,49 +44,53 @@
 ;;;; 设置面板
 (defn text-config-panel
   "创建文本配置项"
-  ([label-text id config-path] (text-config-panel label-text id config-path identity))
-  ([label-text id config-path text-trans-fn]
-   (gui/horizontal-panel
-    :items [(gui/label label-text)
-            (gui/text :id id
-                      :text (str (config/get-in-config config-path))
-                      :listen [:document (fn [e]
-                                           (->> (gui/text e)
-                                                text-trans-fn
-                                                (config/add-in-config! config-path)))])])))
+  ([id config-path] (text-config-panel id config-path identity))
+  ([id config-path text-trans-fn]
+   (gui/text :id id
+             :text (str (config/get-in-config config-path))
+             :listen [:document (fn [e]
+                                  (->> (gui/text e)
+                                       text-trans-fn
+                                       (config/add-in-config! config-path)))])))
 
 
 (defn make-view
   [f]
   (mig-panel
    :border (border/empty-border :left 10 :top 10)
+   :constraints ["fill, ins 0"]
    :items [
-           [(gui/label "主题")
-            "wrap, gaptop 20"]
+           ["主题选择:"]
 
            [(laf-selector)
+            "wrap, gaptop 20, grow"]
+
+           [(gui/separator)
+            "span,  grow"]
+
+           [(gui/label :font (font :from (default-font "Label.font") :style :bold)
+                       :text "百度API设置")
+            "wrap, gaptop 20"]
+
+           ["app-id:"]
+
+           [(text-config-panel :app-id-text [:app-id])
+            "wrap, grow"]
+
+           ["api key:"]
+
+           [(text-config-panel :api-key-text [:api-key])
+            "wrap, grow"]
+
+           ["api secret key:"]
+
+           [(text-config-panel :api-secret-text [:api-secret-key])
             "wrap, grow"]
 
            [(gui/separator)
             "span,  grow"]
 
-           [(gui/label "百度ocr API设置")
-            "wrap, gaptop 20"]
-
-           [(text-config-panel "app-id:" :app-id-text [:app-id])
-            "wrap, grow"]
-
-           [(text-config-panel "api key:" :api-key-text [:api-key])
-            "wrap, grow"]
-
-           [(text-config-panel "api secret key:" :api-secret-text [:api-secret-key])
-            "wrap, grow"]
-
-           [(gui/separator)
-            "span,  grow"]
-
-           [(gui/label "日志级别设置")
-            "wrap, gaptop 20"]
+           ["日志级别:"]
 
            [(gui/combobox :id :log-level-combo
                           :model util/log-levels
@@ -92,5 +99,9 @@
                                                 (let [level (gui/selection e)]
                                                   (util/log-config! level)
                                                   (config/add-config! :log-level level)))])
-            "wrap,  grow"]
+            "wrap, gaptop 20, grow"]
+
+           [(gui/separator)
+            "spanx,  grow"]
+
            ]))
