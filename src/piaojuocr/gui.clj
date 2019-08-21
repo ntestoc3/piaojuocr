@@ -7,7 +7,7 @@
             [seesaw.icon :as icon]
             [seesaw.bind :as bind]
             [seesaw.mig :refer [mig-panel]]
-            [piaojuocr.image :as img]
+            [piaojuocr.viewer :as iview]
             [taoensso.timbre :as log]
             [opencv4.colors.rgb :as color])
   )
