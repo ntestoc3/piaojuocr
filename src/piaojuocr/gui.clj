@@ -18,11 +18,7 @@
   )
 
 
-(def current-img-path "当前图片路径" (atom nil))
 (def current-mat "当前显示的矩阵" (atom nil))
-
-(defn set-current-img-path [path]
-  (reset! current-img-path path))
 
 (defn set-current-mat [mat]
   (reset! current-mat mat))
@@ -30,7 +26,10 @@
 (defn a-open [e]
   (when-let [f (iviewer/choose-pic)]
     (log/debug "open new image file:" f)
-    (set-current-img-path f)))
+    (let [mat (cv/imread f)
+          root (gui/to-root e)]
+      (set-current-mat mat)
+      (iviewer/set-image! root :main-image mat))))
 
 (defn a-save [e]
   (when-let [f (iviewer/choose-pic :save)]
@@ -54,11 +53,7 @@
 
 (defn add-behaviors
   [root]
-  (bind/bind current-img-path
-             (bind/transform cv/imread)
-             (bind/transform (fn [mat]
-                               (set-current-mat mat)
-                               (iviewer/set-image! root :main-image mat)))))
+  )
 
 (defn make-main-view [frame]
   (gui/tabbed-panel :placement :top :overflow :scroll

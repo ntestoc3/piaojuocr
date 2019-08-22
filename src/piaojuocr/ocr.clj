@@ -1,80 +1,48 @@
 (ns piaojuocr.ocr
-  (:require [camel-snake-kebab.core :refer :all]
+  (:require [seesaw.core :as gui]
+            [seesaw.border :as border]
+            [seesaw.mig :refer [mig-panel]]
+            [seesaw.font :refer [font default-font]]
+            [piaojuocr.util :as util]
             [piaojuocr.config :as config]
+            [piaojuocr.ocr-api :as api]
             [taoensso.timbre :as log])
-  (:import com.baidu.aip.ocr.AipOcr))
+  (:import [java.awt Dimension]
+           [java.awt.image BufferedImage]
+           [javax.swing ImageIcon])
+  (:use com.rpl.specter))
+
+(defn de-select [target item]
+  (let [selected (gui/selection target {:multi? true})
+        new-sel (select [(filterer #(not= item (:words %1)))] selected)]
+    (println "new selected:" new-sel)
+    (->> new-sel
+         (gui/selection! target))))
+
+(defn render-ocr [renderer info]
+  (let [v (:value info)]
+    (gui/config! renderer :text (:words v))))
+
+(defn make-view [data]
+  (gui/scrollable (gui/listbox :model data
+                               :renderer render-ocr
+                               ;; :listen [:mouse-released (fn [e]
+                               ;;                            (let [this (gui/to-widget e)
+                               ;;                                  index (->> (.getPoint e)
+                               ;;                                             (.locationToIndex this))]
+                               ;;                              (if (and (not (neg? index))
+                               ;;                                       (.isSelectedIndex this index))
+                               ;;                                (let [item (-> (.getModel this)
+                               ;;                                               (.getElementAt index))]
+                               ;;                                  (de-select this item)))))]
+                               )))
 
 
-(def aip-client (AipOcr.
-                 (config/get-config :app-id)
-                 (config/get-config :api-key)
-                 (config/get-config :api-secret-key)))
+(defn show-ui
+  ([widget]
+   (let [f (gui/frame :title "test ui"
+                      :content widget)]
+     (-> f gui/pack! gui/show!)
+     f)))
 
-(doto aip-client
-  (.setConnectionTimeoutInMillis 2000)
-  (.setSocketTimeoutInMillis 60000))
-
-(defn json->map
-  [json]
-  (condp instance? json
-    org.json.JSONObject
-    (->> (map (fn [k] [(->kebab-case-keyword k)
-                       (-> (.get json k)
-                           json->map)])
-              (.keySet json))
-         (into {}))
-
-    org.json.JSONArray
-    (->> (.iterator json)
-         iterator-seq
-         (map json->map))
-
-    json))
-
-(defn format-options
-  [options]
-  (let [key-fn (if (= :caml-case (get options :type))
-                 ->camelCaseString
-                 ->snake_case_string)]
-      (->> (map (fn [[k v]] [(key-fn k) (str v)]) options)
-        (into {}))))
-
-(defmacro defapi
-  [method args]
-  (let [fn-name (->kebab-case-symbol (str method))
-        str-method (str method)
-        method-name (symbol (str "." method))]
-    `(defn ~fn-name
-       ([~@args] (~fn-name ~@args {}))
-       ([~@args options#]
-        (let [opt# (-> (format-options options#)
-                       java.util.HashMap.)]
-          (log/info "baidu-ocr api:" ~str-method "options:" opt#)
-          (-> (~method-name aip-client ~@args opt#)
-              json->map))))))
-
-(defapi basicGeneral [file])
-(defapi basicAccurateGeneral [file])
-(defapi general [file])
-(defapi custom [file])
-
-(def options {:language-type, "CHN_ENG"
-              :detect-direction, "true"
-              :detect-language, "true"
-              :probability, "true"})
-
-(comment
-  (def file (.getPath (clojure.java.io/resource "test.jpg")))
-
-  (def res2 (basic-general file options))
-
-  (def res3 (basic-accurate-general file options))
-
-  (def res4 (general file options))
-
-  (def res5 (custom file (assoc options
-                                :template-sign "eecfbc1a6645c46977ed7c5a49dc5c04"
-                                :type :caml-case)))
-
-
-  )
+(show-ui (make-view (take 5 (:words-result api/res4))))

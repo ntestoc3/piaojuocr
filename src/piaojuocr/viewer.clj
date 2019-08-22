@@ -7,6 +7,7 @@
             [seesaw.icon :as icon]
             [seesaw.bind :as bind]
             [seesaw.mig :refer [mig-panel]]
+            [piaojuocr.config :as config]
             [taoensso.timbre :as log])
   (:import java.awt.Color
            [javax.imageio ImageIO])
@@ -99,9 +100,11 @@
   ([type]
    (choose-file :filters [["图片"  ["png" "jpeg" "jpg"]]]
                 :all-files? true
-                :remember-directory? true
+                :dir (config/get-config :last-choose-dir "./")
                 :type type
                 :success-fn (fn [_ x] (let [p  (.getAbsolutePath x)]
+                                        (->> (.getParent x)
+                                             (config/add-config! :last-choose-dir))
                                         (if (re-find #"\.(jpg|png|jpeg|bmp)$" p)
                                           p
                                           (do (gui/alert (str p "不是一个图片文件!"))

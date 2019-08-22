@@ -29,7 +29,7 @@
 
 (defn log-to-file!
   "配置log输出文件"
-  ([] (log-config! "logs.log"))
+  ([] (log-to-file! "logs.log"))
   ([file-name]
    (log-add-appender! {:spit (appenders/spit-appender {:fname file-name})})))
 

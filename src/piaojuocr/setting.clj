@@ -25,19 +25,18 @@
   [f]
   (mig-panel
    :border (border/empty-border :left 10 :top 10)
-   :constraints ["fill, ins 0"]
    :items [
            ["主题选择:"]
 
            [(laf-selector)
-            "wrap, gaptop 20, grow"]
+            "wrap, grow"]
 
            [(gui/separator)
             "span,  grow"]
 
            [(gui/label :font (font :from (default-font "Label.font") :style :bold)
                        :text "百度API设置")
-            "wrap, gaptop 20"]
+            "wrap, gaptop 10"]
 
            ["app-id:"]
 
@@ -57,7 +56,8 @@
            [(gui/separator)
             "span,  grow"]
 
-           ["日志级别:"]
+           ["日志级别:"
+            "gaptop 10"]
 
            [(gui/combobox :id :log-level-combo
                           :model util/log-levels
@@ -67,9 +67,9 @@
                                                   (log/info "change log level to:" level)
                                                   (log/set-level! level)
                                                   (config/add-config! :log-level level)))])
-            "wrap, gaptop 20, grow"]
+            "wrap, gaptop 10, grow"]
 
            [(gui/separator)
-            "spanx,  grow"]
+            "spanx, grow"]
 
            ]))

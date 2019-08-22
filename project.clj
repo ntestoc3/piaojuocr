@@ -7,10 +7,12 @@
                  ["spring_plugins" "https://repo.spring.io/plugins-release/"]]
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [com.baidu.aip/java-sdk "4.11.3"] ; baidu ocr sdk
-                 [origami "4.1.1-2" :exclusions [opencv/opencv-native hellonico/gorilla-repl]]
+                 [origami "4.1.1-3" :exclusions [opencv/opencv-native
+                                                 hellonico/gorilla-repl]]
                  [seesaw "1.5.0"] ; swing GUI
                  [camel-snake-kebab/camel-snake-kebab "0.4.0"]
                  [com.taoensso/timbre "4.10.0"] ; logging
+                 [com.rpl/specter "1.1.2"] ; dict selector
 
                  ;; uncomment to use only the binary for your platform
                  ;;[opencv/opencv-native "4.0.0-1" :classifier "osx_64"]
@@ -19,7 +21,7 @@
 
                  [org.pushing-pixels/radiance-substance "2.0.1"]
 
-                 [cprop/cprop "0.1.13"] ;; env manage
+                 [cprop/cprop "0.1.14"] ;; env manage
                  ]
   :omit-source true
   :main ^:skip-aot piaojuocr.core
