@@ -11,9 +11,9 @@
                  [seesaw "1.5.0"] ; swing GUI
                  [camel-snake-kebab/camel-snake-kebab "0.4.0"]
                  [com.taoensso/timbre "4.10.0"] ; logging
-                                        ; uncomment to use only the binary for your platform
-                                        ;[origami "4.0.0-1" :exclusions [opencv/opencv-native]]
-                                        ;[opencv/opencv-native "4.0.0-1" :classifier "osx_64"]
+
+                 ;; uncomment to use only the binary for your platform
+                 ;;[opencv/opencv-native "4.0.0-1" :classifier "osx_64"]
                  [opencv/opencv-native "4.1.1-1" :classifier "linux_64"]
                  [opencv/opencv-native "4.1.1-1" :classifier "windows_64"]
 

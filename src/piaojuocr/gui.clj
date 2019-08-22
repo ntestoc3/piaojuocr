@@ -9,6 +9,7 @@
             [seesaw.mig :refer [mig-panel]]
             [piaojuocr.viewer :as iviewer]
             [piaojuocr.setting :as setting]
+            [piaojuocr.theme :as theme]
             [taoensso.timbre :as log]
             [opencv4.colors.rgb :as color])
   )
@@ -34,7 +35,7 @@
 
 (defn a-exit  [e] (gui/dispose! e))
 
-(def menus
+(defn make-menus []
   (let [a-open (gui/action :handler a-open :name "打开" :tip "打开图片文件" :key "menu O")
         a-save (gui/action :handler a-save :name "保存" :tip "保存当前图片" :key "menu S")
         a-exit (gui/action :handler a-exit :name"退出" :tip "退出程序" :key "menu X")]
@@ -52,15 +53,15 @@
   )
 
 (defn show-frame []
+  (gui/native!)
   (let [frame (gui/frame
-               :title "文字识别测试"
-               :menubar menus)]
-    (gui/native!)
-    (gui/config! frame :content (setting/make-view frame))  ; (make-main-panel)
-    (setting/init-ui)
-    (-> frame gui/pack! gui/show!)))
+               :title "文字识别测试")]
+    (theme/wrap-theme
+     (gui/config! frame :content (setting/make-view frame))
+     (gui/config! frame :menubar (make-menus)))  ; (make-main-panel)
 
-
+    (gui/invoke-later
+     (-> frame gui/pack! gui/show!))))
 
 (comment
   (show-frame)
