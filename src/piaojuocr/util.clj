@@ -12,20 +12,26 @@
 (def ->select-id "转换为id选择器" (partial replace-keyword #(str "#" %1)))
 
 ;;;; 日志记录相关
-(def log-levels #{:trace :debug :info :warn :error :fatal :report})
+(def log-levels [:trace :debug :info :warn :error :fatal :report])
 
-(defn log-config!
-  "配置log级别和输出文件"
-  ([level] (log-config! level "logs.log"))
-  ([level file-name]
-   {:pre [(log-levels level)]}
-   (log/merge-config!
-    {:level level
-     :timestamp-opts
-     {:pattern "yyyy/MM/dd HH:mm:ss"
-      :locale (java.util.Locale/getDefault)
-      :timezone (java.util.TimeZone/getDefault)}
-     :appenders {:spit (appenders/spit-appender {:fname file-name})}})))
+(defn log-time-format! []
+  (log/merge-config!
+   {:timestamp-opts
+    {:pattern "yyyy/MM/dd HH:mm:ss"
+     :locale (java.util.Locale/getDefault)
+     :timezone (java.util.TimeZone/getDefault)}}))
+
+(defn log-add-appender!
+  "添加日志记录项"
+  [appender]
+  (log/merge-config!
+   {:appenders appender}))
+
+(defn log-to-file!
+  "配置log输出文件"
+  ([] (log-config! "logs.log"))
+  ([file-name]
+   (log-add-appender! {:spit (appenders/spit-appender {:fname file-name})})))
 
 (defn extract-resource!
   "提取资源文件到当前目录"

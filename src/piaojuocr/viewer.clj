@@ -106,6 +106,7 @@
    (cv/imwrite mat path)))
 
 (comment
+
   (def f1 (some-> (open-img)
                   show-pic!))
 

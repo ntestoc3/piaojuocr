@@ -4,7 +4,8 @@
             [seesaw.mig :refer [mig-panel]]
             [seesaw.font :refer [font default-font]]
             [piaojuocr.util :as util]
-            [piaojuocr.config :as config])
+            [piaojuocr.config :as config]
+            [taoensso.timbre :as log])
   (:import org.pushingpixels.substance.api.SubstanceCortex$GlobalScope
            [javax.swing JFrame UIManager]
            ))
@@ -21,14 +22,20 @@
   (gui/invoke-later
    (SubstanceCortex$GlobalScope/setSkin laf-info)))
 
+(defn reset-theme
+  "重置主题为系统默认,这样就可以直接在非swing线程创建swing组件"
+  []
+  (gui/native!))
+
 (defmacro wrap-theme [& body]
   `(do
-     (gui/native!)
+     (reset-theme)
      (JFrame/setDefaultLookAndFeelDecorated true)
-     ~@body
-     (-> (config/get-config :theme)
-         all-themes
-         set-laf)))
+     (let [r# (do ~@body)]
+       (-> (config/get-config :theme)
+           all-themes
+           set-laf)
+       r#)))
 
 (defn laf-selector []
   (gui/combobox
@@ -37,8 +44,8 @@
    :selected-item (config/get-config :theme "Moderate")
    :listen   [:selection (fn [e]
                            (let [theme (gui/selection e)]
-                             (println "selected" theme)
                              (config/add-config! :theme theme)
+                             (log/info "change theme to:" theme)
                              (-> theme
                                  all-themes
                                  set-laf)))]))

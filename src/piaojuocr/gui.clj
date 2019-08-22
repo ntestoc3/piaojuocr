@@ -8,20 +8,23 @@
             [seesaw.bind :as bind]
             [seesaw.mig :refer [mig-panel]]
             [piaojuocr.viewer :as iviewer]
+            [piaojuocr.logging :as logging]
             [piaojuocr.setting :as setting]
+            [piaojuocr.config :as config]
             [piaojuocr.theme :as theme]
             [taoensso.timbre :as log]
             [opencv4.colors.rgb :as color])
   )
 
 
-(def states "保存gui状态信息" (atom {}))
+(def current-img-path "当前图片路径" (atom nil))
+(def current-mat "当前显示的矩阵" (atom nil))
 
 (defn set-current-img-path [path]
-  (swap! states assoc :current-img-path path))
+  (reset! current-img-path path))
 
 (defn set-current-mat [mat]
-  (swap! states assoc :current-mat mat))
+  (reset! current-mat mat))
 
 (defn a-open [e]
   (when-let [f (iviewer/choose-pic)]
@@ -29,8 +32,7 @@
 
 (defn a-save [e]
   (when-let [f (iviewer/choose-pic :save)]
-    (-> @states
-        :current-mat
+    (-> @current-mat
         (cv/imwrite f))))
 
 (defn a-exit  [e] (gui/dispose! e))
@@ -42,28 +44,47 @@
     (gui/menubar
      :items [(gui/menu :text "文件" :items [a-open a-save a-exit])])))
 
-(defn make-main-panel []
+(defn make-pic-ocr-view [frame]
   (let [img-panel (iviewer/make-pic-viewer :main-image)]
-    (mig-panel
-    :constraints ["fill, ins 0"]
-    :items [(gui/scrollable img-panel)])))
+    (gui/border-panel
+     :center (gui/scrollable img-panel))))
 
 (defn add-behaviors
   [root]
-  )
+  (bind/bind current-img-path
+             (bind/transform cv/imread)
+             (bind/transform (fn [mat]
+                               (iviewer/set-image! root :main-image mat)))))
 
-(defn show-frame []
-  (gui/native!)
-  (let [frame (gui/frame
-               :title "文字识别测试")]
-    (theme/wrap-theme
-     (gui/config! frame :content (setting/make-view frame))
-     (gui/config! frame :menubar (make-menus)))  ; (make-main-panel)
+(defn make-main-view [frame]
+  (gui/tabbed-panel :placement :top :overflow :scroll
+                    :tabs [{:title "图片处理"
+                            :tip "图片处理与ocr功能"
+                            :content (make-pic-ocr-view frame)}
+                           {:title "设置"
+                            :tip "系统设置"
+                            :content (setting/make-view frame)}
+                           {:title "日志"
+                            :tip "日志面板"
+                            :content (logging/make-view frame)}]))
 
-    (gui/invoke-later
-     (-> frame gui/pack! gui/show!))))
+(defn make-frame []
+  (theme/wrap-theme
+   (let [f (gui/frame
+            :title "文字识别测试"
+            :menubar (make-menus)
+            :listen [:window-closing (fn [e]
+                                       (log/info "close frame window.")
+                                       (config/save-config!)
+                                       (log/info "exit over."))])]
+     (add-behaviors f)
+     (gui/config! f :content (make-main-view f)))))
+
+(defn show-frame [f]
+  (-> f gui/pack! gui/show!))
 
 (comment
-  (show-frame)
+  (-> (make-frame)
+      show-frame)
 
   )

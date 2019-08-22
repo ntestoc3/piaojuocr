@@ -5,7 +5,8 @@
             [seesaw.font :refer [font default-font]]
             [piaojuocr.util :as util]
             [piaojuocr.config :as config]
-            [piaojuocr.theme :refer [laf-selector]]))
+            [piaojuocr.theme :refer [laf-selector]]
+            [taoensso.timbre :as log]))
 
 ;;;; 设置面板
 (defn text-config-panel
@@ -63,7 +64,8 @@
                           :selected-item (config/get-config :log-level :info)
                           :listen [:selection (fn [e]
                                                 (let [level (gui/selection e)]
-                                                  (util/log-config! level)
+                                                  (log/info "change log level to:" level)
+                                                  (log/set-level! level)
                                                   (config/add-config! :log-level level)))])
             "wrap, gaptop 20, grow"]
 
