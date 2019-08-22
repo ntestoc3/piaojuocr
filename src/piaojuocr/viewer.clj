@@ -8,7 +8,8 @@
             [seesaw.bind :as bind]
             [seesaw.mig :refer [mig-panel]]
             [taoensso.timbre :as log])
-  (:import java.awt.Color)
+  (:import java.awt.Color
+           [javax.imageio ImageIO])
   (:use seesaw.chooser
         piaojuocr.util)
   )
@@ -63,6 +64,23 @@
                       (cv/cvt-color! cv/COLOR_GRAY2BGR))
                   mat)]
        (reset! img! (u/mat-to-buffered-image mat2))))))
+
+(defn get-image
+  [root id]
+  (some-> (gui/select root [(->select-id id)])
+          gui/user-data
+          deref))
+
+(defn img->bytes [img]
+  (let [baos (java.io.ByteArrayOutputStream.)]
+    (ImageIO/write img "jpg" baos)
+    (.toByteArray baos)))
+
+(defn get-image-bytes
+  "获得当前显示图片的字节数组"
+  [root id]
+  (some-> (get-image root id)
+          img->bytes))
 
 (defn show-pic!
   "显示图片，gray表示是否为灰度图"

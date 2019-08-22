@@ -12,6 +12,7 @@
             [piaojuocr.setting :as setting]
             [piaojuocr.config :as config]
             [piaojuocr.theme :as theme]
+            [piaojuocr.ocr :as ocr]
             [taoensso.timbre :as log]
             [opencv4.colors.rgb :as color])
   )
@@ -28,10 +29,12 @@
 
 (defn a-open [e]
   (when-let [f (iviewer/choose-pic)]
+    (log/debug "open new image file:" f)
     (set-current-img-path f)))
 
 (defn a-save [e]
   (when-let [f (iviewer/choose-pic :save)]
+    (log/debug "saving image file:" f)
     (-> @current-mat
         (cv/imwrite f))))
 
@@ -47,13 +50,14 @@
 (defn make-pic-ocr-view [frame]
   (let [img-panel (iviewer/make-pic-viewer :main-image)]
     (gui/border-panel
-     :center (gui/scrollable img-panel))))
+     :center img-panel)))
 
 (defn add-behaviors
   [root]
   (bind/bind current-img-path
              (bind/transform cv/imread)
              (bind/transform (fn [mat]
+                               (set-current-mat mat)
                                (iviewer/set-image! root :main-image mat)))))
 
 (defn make-main-view [frame]
@@ -84,7 +88,7 @@
   (-> f gui/pack! gui/show!))
 
 (comment
-  (-> (make-frame)
-      show-frame)
+  (def f1 (-> (make-frame)
+              show-frame))
 
   )

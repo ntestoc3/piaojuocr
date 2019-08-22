@@ -1,13 +1,14 @@
 (ns piaojuocr.ocr
   (:require [camel-snake-kebab.core :refer :all]
-            [piaojuocr.config :as config])
+            [piaojuocr.config :as config]
+            [taoensso.timbre :as log])
   (:import com.baidu.aip.ocr.AipOcr))
 
 
 (def aip-client (AipOcr.
                  (config/get-config :app-id)
                  (config/get-config :api-key)
-                 (config/get-config :sec-key)))
+                 (config/get-config :api-secret-key)))
 
 (doto aip-client
   (.setConnectionTimeoutInMillis 2000)
@@ -41,12 +42,14 @@
 (defmacro defapi
   [method args]
   (let [fn-name (->kebab-case-symbol (str method))
+        str-method (str method)
         method-name (symbol (str "." method))]
     `(defn ~fn-name
        ([~@args] (~fn-name ~@args {}))
        ([~@args options#]
         (let [opt# (-> (format-options options#)
                        java.util.HashMap.)]
+          (log/info "baidu-ocr api:" ~str-method "options:" opt#)
           (-> (~method-name aip-client ~@args opt#)
               json->map))))))
 
