@@ -30,4 +30,9 @@
      (-> f gui/pack! gui/show!)
      f)))
 
-(comment (show-ui (make-view (:words-result api/res4))))
+(comment
+
+  (show-ui (make-view (:words-result api/res4)))
+
+
+  )

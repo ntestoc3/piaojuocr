@@ -21,6 +21,8 @@
      :locale (java.util.Locale/getDefault)
      :timezone (java.util.TimeZone/getDefault)}}))
 
+(defonce __log-time log-time-format!)
+
 (defn log-add-appender!
   "添加日志记录项"
   [appender]
