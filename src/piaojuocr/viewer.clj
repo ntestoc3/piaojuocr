@@ -1,30 +1,19 @@
 (ns piaojuocr.viewer
-  (:require [opencv4.core :as cv]
-            [opencv4.utils :as u]
-            [opencv4.colors.rgb :as rgb]
-            [opencv4.colors.html :as html]
-            [seesaw.core :as gui]
-            [seesaw.icon :as icon]
+  (:require [seesaw.core :as gui]
             [seesaw.bind :as bind]
             [seesaw.mig :refer [mig-panel]]
             [piaojuocr.config :as config]
-            [taoensso.timbre :as log])
+            [taoensso.timbre :as log]
+            [me.raynes.fs :as fs])
   (:import java.awt.Color
            [javax.imageio ImageIO])
   (:use seesaw.chooser
         piaojuocr.util)
   )
 
-(defn rgb->hsv
-  "rgb色彩空间转换到hsv色彩空间"
-  [r g b]
-  (let [mat (cv/new-mat 1 1 cv/CV_8UC3 (cv/new-scalar b g r))]
-    (cv/cvt-color! mat cv/COLOR_BGR2HSV)
-    (map int (.get mat 0 0))))
-
 (defn make-pic-viewer [id]
   (let [rgb-txt (gui/label :id (replace-keyword #(str %1 "-txt") id)
-                           :text "X: Y: R: G: B: H: S: V:") ;; 必须是rgb图片，值才准确
+                           :text "X: Y: R: G: B:") ;; 必须是rgb图片，值才准确
         img (atom nil)
         pic (gui/label :text ""
                        :id id
@@ -43,10 +32,9 @@
                                                         (Color.  true))
                                               r (.getRed color)
                                               g (.getGreen color)
-                                              b (.getBlue color)
-                                              [h s v] (rgb->hsv r g b)]
-                                          (gui/text! rgb-txt (format "X: %d Y: %d, R: %d G: %d B: %d, H: %d S: %d V: %d"
-                                                                     x y r g b h s v)))))))])]
+                                              b (.getBlue color)]
+                                          (gui/text! rgb-txt (format "X: %d Y: %d, R: %d G: %d B: %d"
+                                                                     x y r g b)))))))])]
     (bind/bind img
                (bind/transform gui/icon)
                (bind/property pic :icon))
@@ -55,16 +43,10 @@
              (gui/scrollable pic)])))
 
 (defn set-image!
-  ([root id mat] (set-image! root id mat false))
-  ([root id mat gray]
-   (when-let [img! (some-> (gui/select root [(->select-id id)])
-                           gui/user-data)]
-     (let [mat2 (if gray
-                  (-> mat
-                      cv/clone
-                      (cv/cvt-color! cv/COLOR_GRAY2BGR))
-                  mat)]
-       (reset! img! (u/mat-to-buffered-image mat2))))))
+  ([root id image]
+   (some-> (gui/select root [(->select-id id)])
+           gui/user-data
+           (reset! image))))
 
 (defn get-image
   [root id]
@@ -72,25 +54,32 @@
           gui/user-data
           deref))
 
-(defn img->bytes [img]
+(defn img->bytes [img format]
   (let [baos (java.io.ByteArrayOutputStream.)]
-    (ImageIO/write img "jpg" baos)
+    (ImageIO/write img format baos)
     (.toByteArray baos)))
 
 (defn get-image-bytes
   "获得当前显示图片的字节数组"
-  [root id]
+  [root id format]
   (some-> (get-image root id)
-          img->bytes))
+          (img->bytes format)))
+
+(defn file-format [file-path]
+  (-> (fs/extension file-path)
+      (subs 1)))
+
+(defn save-image [root id file-path]
+  (let [ext (file-format file-path)]
+    (some-> (get-image root id)
+            (ImageIO/write ext (fs/file file-path)))))
 
 (defn show-pic!
-  "显示图片，gray表示是否为灰度图"
-  ([mat] (show-pic! mat false))
-  ([mat gray]
+  ([path]
    (let [f (gui/frame :title "pic view")
          image (make-pic-viewer :test)]
      (gui/config! f :content image)
-     (set-image! f :test mat gray)
+     (set-image! f :test path)
      (-> f gui/pack! gui/show!)
      f)))
 
@@ -110,28 +99,16 @@
                                           (do (gui/alert (str p "不是一个图片文件!"))
                                               (choose-pic type))))))))
 
-(defn open-img
-  ([]
-   (when-let [path (choose-pic)]
-     (cv/imread path)))
-  ([type]
-   (when-let [path (choose-pic)]
-     (cv/imread path type))))
-
-(defn save-img
-  "保存图片"
-  ([mat]
-   (when-let [path (choose-pic)]
-     (cv/imwrite mat path)))
-  ([mat path]
-   (cv/imwrite mat path)))
+(defn read-image [file]
+  (-> (fs/file file)
+      ImageIO/read))
 
 (comment
 
-  (def f1 (some-> (open-img)
+  (def f1 (some-> (choose-pic)
+                  read-image
                   show-pic!))
 
-  (set-image! f1 :test (open-img))
 
   (choose-pic)
 

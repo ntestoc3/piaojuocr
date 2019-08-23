@@ -13,6 +13,10 @@
                  [camel-snake-kebab/camel-snake-kebab "0.4.0"]
                  [com.taoensso/timbre "4.10.0"] ; logging
                  [com.rpl/specter "1.1.2"] ; dict selector
+                 [me.raynes/fs "1.4.6"] ; file util
+
+                 ;; https://mvnrepository.com/artifact/net.imagej/ij
+                 [net.imagej/ij "1.52p"]
 
                  ;; uncomment to use only the binary for your platform
                  ;;[opencv/opencv-native "4.0.0-1" :classifier "osx_64"]

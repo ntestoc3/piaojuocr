@@ -1,9 +1,5 @@
 (ns piaojuocr.gui
-  (:require [opencv4.core :as cv]
-            [opencv4.utils :as u]
-            [opencv4.colors.rgb :as rgb]
-            [opencv4.colors.html :as html]
-            [seesaw.core :as gui]
+  (:require [seesaw.core :as gui]
             [seesaw.icon :as icon]
             [seesaw.bind :as bind]
             [seesaw.mig :refer [mig-panel]]
@@ -13,29 +9,21 @@
             [piaojuocr.config :as config]
             [piaojuocr.theme :as theme]
             [piaojuocr.ocr :as ocr]
-            [taoensso.timbre :as log]
-            [opencv4.colors.rgb :as color])
-  )
-
-
-(def current-mat "当前显示的矩阵" (atom nil))
-
-(defn set-current-mat [mat]
-  (reset! current-mat mat))
+            [taoensso.timbre :as log]))
 
 (defn a-open [e]
   (when-let [f (iviewer/choose-pic)]
     (log/debug "open new image file:" f)
-    (let [mat (cv/imread f)
-          root (gui/to-root e)]
-      (set-current-mat mat)
-      (iviewer/set-image! root :main-image mat))))
+    (let [root (gui/to-root e)
+          img (iviewer/read-image f)]
+      (iviewer/set-image! root :main-image img))))
 
 (defn a-save [e]
   (when-let [f (iviewer/choose-pic :save)]
     (log/debug "saving image file:" f)
-    (-> @current-mat
-        (cv/imwrite f))))
+    (iviewer/save-image (gui/to-root e)
+                        :main-image
+                        f)))
 
 (defn a-exit  [e] (gui/dispose! e))
 

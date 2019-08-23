@@ -12,30 +12,15 @@
            [javax.swing ImageIcon])
   (:use com.rpl.specter))
 
-(defn de-select [target item]
-  (let [selected (gui/selection target {:multi? true})
-        new-sel (select [(filterer #(not= item (:words %1)))] selected)]
-    (println "new selected:" new-sel)
-    (->> new-sel
-         (gui/selection! target))))
-
 (defn render-ocr [renderer info]
   (let [v (:value info)]
-    (gui/config! renderer :text (:words v))))
+    (gui/config! renderer :text (str (:words v)
+                                     "  ---  "
+                                     (get-in v [:probability :average])))))
 
 (defn make-view [data]
   (gui/scrollable (gui/listbox :model data
-                               :renderer render-ocr
-                               ;; :listen [:mouse-released (fn [e]
-                               ;;                            (let [this (gui/to-widget e)
-                               ;;                                  index (->> (.getPoint e)
-                               ;;                                             (.locationToIndex this))]
-                               ;;                              (if (and (not (neg? index))
-                               ;;                                       (.isSelectedIndex this index))
-                               ;;                                (let [item (-> (.getModel this)
-                               ;;                                               (.getElementAt index))]
-                               ;;                                  (de-select this item)))))]
-                               )))
+                               :renderer render-ocr)))
 
 
 (defn show-ui
@@ -45,4 +30,4 @@
      (-> f gui/pack! gui/show!)
      f)))
 
-(show-ui (make-view (take 5 (:words-result api/res4))))
+(comment (show-ui (make-view (:words-result api/res4))))
