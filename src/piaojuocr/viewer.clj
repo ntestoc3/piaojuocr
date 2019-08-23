@@ -57,6 +57,15 @@
     (img/draw-rect! img x y width height)
     (gui/repaint! lbl)))
 
+(defn draw-rects!
+  "rects格式为[[x y width height]...]"
+  [root id rects]
+  (let [lbl (gui/select root [(->select-id id)])
+        img (get-icon-image lbl)]
+    (doseq [[x y width height] rects]
+      (img/draw-rect! img x y width height))
+    (gui/repaint! lbl)))
+
 (defn get-image
   "获取当前图片"
   [root id]
