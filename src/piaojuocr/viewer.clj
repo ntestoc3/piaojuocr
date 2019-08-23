@@ -2,6 +2,7 @@
   (:require [seesaw.core :as gui]
             [seesaw.bind :as bind]
             [seesaw.mig :refer [mig-panel]]
+            [seesaw.behave :as behave]
             [piaojuocr.config :as config]
             [piaojuocr.img :as img]
             [taoensso.timbre :as log]
@@ -16,6 +17,27 @@
   [id]
   (some-> (gui/config id :icon)
           .getImage))
+
+(defn pan [view-to-pan dx dy]
+  (let [^javax.swing.JViewport  viewport (.. view-to-pan getParent)
+        rect      (.getViewRect viewport)
+        full-size (.getViewSize viewport)
+        [x y w h] [(.x rect) (.y rect) (.width rect) (.height rect)]
+        new-x (Math/min (Math/max 0 (+ x (int dx))) (- (.width full-size) w))
+        new-y (Math/min (Math/max 0 (+ y (int dy))) (- (.height full-size) h))]
+    (.setViewPosition viewport (java.awt.Point. new-x new-y))))
+
+(defn- calculate-scales [panner view-to-pan]
+  [(/ (.getWidth view-to-pan) (.getWidth panner))
+   (/ (.getHeight view-to-pan) (.getHeight panner))])
+
+(defn pan-on-drag
+  "speed 正值按照滚动条方向，负值按鼠标移动方向"
+  ([view-to-pan & {:keys [panner speed] :or {panner view-to-pan speed 1.0}}]
+   (behave/when-mouse-dragged panner
+                              :drag (fn [e [dx dy]]
+                                      (let [[sx sy] (calculate-scales panner view-to-pan)]
+                                        (pan view-to-pan (* dx sx speed) (* dy sy speed)))))))
 
 (defn make-pic-viewer [id]
   (let [rgb-txt (gui/label :id (replace-keyword #(str %1 "-txt") id)
@@ -39,6 +61,7 @@
                                               b (.getBlue color)]
                                           (gui/text! rgb-txt (format "X: %d Y: %d, R: %d G: %d B: %d"
                                                                      x y r g b)))))))])]
+    (pan-on-drag pic :speed -0.8)
     (gui/vertical-panel
      :items [rgb-txt
              (gui/scrollable pic)])))

@@ -141,6 +141,7 @@
   (theme/wrap-theme
    (let [f (gui/frame
             :title "文字识别测试"
+            :on-close :exit
             :menubar (make-menus))
          cb (img/image-callback {:fn-updated (make-imagej-updated-cb f)})]
      (gui/listen f :window-closing
