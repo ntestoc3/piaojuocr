@@ -2,13 +2,16 @@
   (:require [seesaw.core :as gui]
             [seesaw.icon :as icon]
             [seesaw.bind :as bind]
+            [seesaw.table :as table]
             [seesaw.mig :refer [mig-panel]]
             [piaojuocr.viewer :as iviewer]
             [piaojuocr.logging :as logging]
             [piaojuocr.setting :as setting]
             [piaojuocr.config :as config]
+            [piaojuocr.util :as util]
             [piaojuocr.theme :as theme]
             [piaojuocr.ocr :as ocr]
+            [piaojuocr.ocr-api :as ocr-api]
             [taoensso.timbre :as log]
             [piaojuocr.img :as img]))
 
@@ -55,6 +58,17 @@
                              :main-image))
     (gui/alert "没有编辑的图片")))
 
+(def ocr-img (atom nil))
+(defn a-ocr-general [e]
+  (let [root (gui/to-root e)]
+    (if-let [img (iviewer/get-image-bytes root :main-image "jpg")]
+      (let [result (ocr-api/general img)
+            bimg (iviewer/get-image root :main-image)]
+        (log/info "ocr general result words num" (:words-result-num result))
+        (reset! ocr-img (img/deep-copy bimg))
+        (ocr/set-model! root :main-ocr result))
+      (gui/alert "还没有打开图片"))))
+
 (defn make-menus []
   (let [a-open (gui/action :handler a-open :name "打开" :tip "打开图片文件" :key "menu O")
         a-save (gui/action :handler a-save :name "保存" :tip "保存当前图片" :key "menu S")
@@ -62,22 +76,44 @@
         a-pic-edit (gui/action :handler a-pic-edit :name "编辑图片" :tip "使用ImageJ编辑图片" :key "menu E")
         a-pic-update (gui/action :handler a-pic-update :name "更新图片" :tip "更新显示编辑后的图片")
         a-pic-auto-update (gui/checkbox-menu-item :text "自动更新图片"
-                                                  :selected? @auto-update)]
+                                                  :selected? @auto-update)
+        a-ocr-general (gui/action :handler a-ocr-general :name "通用(含位置)" :tip "识别图片中的文字(包含位置信息)")]
     (bind/bind
      (bind/property a-pic-auto-update :selected?)
      auto-update)
     (gui/menubar
      :items [(gui/menu :text "文件" :items [a-open a-save a-exit])
-             (gui/menu :text "图片" :items [a-pic-edit a-pic-update a-pic-auto-update])])))
+             (gui/menu :text "图片" :items [a-pic-edit a-pic-update a-pic-auto-update])
+             (gui/menu :text "OCR" :items [a-ocr-general])])))
 
 (defn make-pic-ocr-view [frame]
-  (let [img-panel (iviewer/make-pic-viewer :main-image)]
-    (gui/border-panel
-     :center img-panel)))
+  (let [img-panel (iviewer/make-pic-viewer :main-image)
+        ocr-panel (ocr/make-view [] :main-ocr)]
+    (gui/left-right-split img-panel ocr-panel
+                          :divider-location 0.5)))
+
+(defn tbl-sel-draw! [root ocr-tbl e]
+  #_(when-some [sels (gui/selection ocr-tbl {:multi? true})]
+    (log/info "sels count" (count sels))
+    )
+  (when-some [sels (gui/selection ocr-tbl {:multi? true})]
+    (let [new-img (img/deep-copy @ocr-img)]
+      (doseq [row sels]
+        (let [value (table/value-at ocr-tbl row)]
+          (img/draw-rect! new-img
+                          {:left value}
+                          {:top value}
+                          {:width value}
+                          {:height value})))
+      (iviewer/set-image! root :main-image new-img))))
 
 (defn add-behaviors
   [root]
-  )
+  (let [ocr-tbl (gui/select root [(util/->select-id :main-ocr)])]
+    (bind/bind
+     (bind/selection ocr-tbl)
+     (bind/transform
+      #(tbl-sel-draw! root ocr-tbl %1)))))
 
 (defn make-main-view [frame]
   (gui/tabbed-panel :placement :top :overflow :scroll
@@ -104,8 +140,9 @@
                    (config/save-config!)
                    (log/info "exit over.")))
      (img/add-image-callback cb)
+     (gui/config! f :content (make-main-view f))
      (add-behaviors f)
-     (gui/config! f :content (make-main-view f)))))
+     f)))
 
 (defn show-frame [f]
   (-> f gui/pack! gui/show!))

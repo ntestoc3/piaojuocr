@@ -5,13 +5,18 @@
 
 (defn draw-rect!
   "画矩形"
-  ([^BufferedImage img x y width height] (draw-rect img x y width height 2))
+  ([^BufferedImage img x y width height] (draw-rect! img x y width height 2))
   ([^BufferedImage img x y width height thickness]
    (let [g2d (.createGraphics img)]
      (doto g2d
        (.setColor Color/RED)
        (.setStroke (BasicStroke. thickness))
        (.drawRect x y width height)))))
+
+(defn deep-copy [src-img]
+  (let [cm (.getColorModel src-img)
+        raster (.copyData src-img nil)]
+    (BufferedImage. cm raster (.isAlphaPremultiplied cm) nil)))
 
 (defonce ij-main (atom nil))
 

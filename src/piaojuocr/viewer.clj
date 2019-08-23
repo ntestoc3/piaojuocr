@@ -121,9 +121,13 @@
 
 (comment
 
+  (gui/native!)
+
   (def f1 (some-> (choose-pic)
                   read-image
-                  show-pic!))
+                  show-pic))
+
+  (type (get-image f1 :test))
 
 
   (choose-pic)

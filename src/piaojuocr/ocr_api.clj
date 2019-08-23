@@ -64,7 +64,7 @@
               :probability, "true"})
 
 (comment
-  (def file (.getPath (clojure.java.io/resource "test.jpg")))
+  (def file (.getPath (clojure.java.io/resource "test2.jpg")))
 
   (def res2 (basic-general file options))
 
