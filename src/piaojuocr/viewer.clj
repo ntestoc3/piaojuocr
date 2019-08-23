@@ -3,6 +3,7 @@
             [seesaw.bind :as bind]
             [seesaw.mig :refer [mig-panel]]
             [piaojuocr.config :as config]
+            [piaojuocr.img :as img]
             [taoensso.timbre :as log]
             [me.raynes.fs :as fs])
   (:import java.awt.Color
@@ -43,18 +44,28 @@
              (gui/scrollable pic)])))
 
 (defn set-image!
+  "设置当前图片"
   ([root id image]
    (some-> (gui/select root [(->select-id id)])
            gui/user-data
            (reset! image))))
 
+(defn draw-rect!
+  [root id x y width height]
+  (let [lbl (gui/select root [(->select-id id)])
+        img (-> (gui/config lbl :icon)
+                .getImage)]
+    (img/draw-rect! img x y width height)
+    (gui/repaint! lbl)))
+
 (defn get-image
+  "获取当前图片"
   [root id]
   (some-> (gui/select root [(->select-id id)])
           gui/user-data
           deref))
 
-(defn img->bytes [img format]
+(defn- img->bytes [img format]
   (let [baos (java.io.ByteArrayOutputStream.)]
     (ImageIO/write img format baos)
     (.toByteArray baos)))
@@ -65,23 +76,28 @@
   (some-> (get-image root id)
           (img->bytes format)))
 
-(defn file-format [file-path]
+(defn- file-format
+  "返回文件格式"
+  [file-path]
   (-> (fs/extension file-path)
       (subs 1)))
 
-(defn save-image [root id file-path]
+(defn save-image
+  "保存图片"
+  [root id file-path]
   (let [ext (file-format file-path)]
     (some-> (get-image root id)
             (ImageIO/write ext (fs/file file-path)))))
 
-(defn show-pic!
-  ([path]
-   (let [f (gui/frame :title "pic view")
-         image (make-pic-viewer :test)]
-     (gui/config! f :content image)
-     (set-image! f :test path)
-     (-> f gui/pack! gui/show!)
-     f)))
+(defn show-pic
+  "显示图片"
+  [path]
+  (let [f (gui/frame :title "pic viewer")
+        image (make-pic-viewer :test)]
+    (gui/config! f :content image)
+    (set-image! f :test path)
+    (-> f gui/pack! gui/show!)
+    f))
 
 (defn choose-pic
   "选择图片文件,返回文件路径"
@@ -99,7 +115,9 @@
                                           (do (gui/alert (str p "不是一个图片文件!"))
                                               (choose-pic type))))))))
 
-(defn read-image [file]
+(defn read-image
+  "从文件读取图片"
+  [file]
   (-> (fs/file file)
       ImageIO/read))
 
