@@ -6,6 +6,5 @@
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
-  (util/extract-resource! "config.edn")
   (-> (make-frame)
       show-frame))

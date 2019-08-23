@@ -3,8 +3,9 @@
             [taoensso.timbre :as log]
             [taoensso.timbre.appenders.core :as appenders]))
 
-(defn replace-keyword [f kw]
+(defn replace-keyword
   "修改关键字，f为 str -> str"
+  [f kw]
   (-> (name kw)
       f
       keyword))

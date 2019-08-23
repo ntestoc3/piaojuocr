@@ -1,6 +1,10 @@
 (ns piaojuocr.config
   (:require [cprop.core :refer [load-config]]
+            [piaojuocr.util :as util]
             [cprop.source :as source]))
+
+
+(util/extract-resource! "config.edn")
 
 (def env (load-config
           :file "config.edn"
