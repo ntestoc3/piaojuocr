@@ -12,21 +12,24 @@
         piaojuocr.util)
   )
 
+(defn get-icon-image
+  [id]
+  (some-> (gui/config id :icon)
+          .getImage))
+
 (defn make-pic-viewer [id]
   (let [rgb-txt (gui/label :id (replace-keyword #(str %1 "-txt") id)
                            :text "X: Y: R: G: B:") ;; 必须是rgb图片，值才准确
-        img (atom nil)
         pic (gui/label :text ""
                        :id id
                        :halign :left
                        :valign :top
                        :background :white
-                       :user-data img
                        :listen [:mouse-motion
                                 (fn [e]
                                   (let [x (.getX e)
                                         y (.getY e)]
-                                    (when-let [img @img]
+                                    (when-let [img (get-icon-image e)]
                                       (when (and (< x (.getWidth img))
                                                  (< y (.getHeight img)))
                                         (let [color (-> (.getRGB img x y)
@@ -36,9 +39,6 @@
                                               b (.getBlue color)]
                                           (gui/text! rgb-txt (format "X: %d Y: %d, R: %d G: %d B: %d"
                                                                      x y r g b)))))))])]
-    (bind/bind img
-               (bind/transform gui/icon)
-               (bind/property pic :icon))
     (gui/vertical-panel
      :items [rgb-txt
              (gui/scrollable pic)])))
@@ -46,15 +46,14 @@
 (defn set-image!
   "设置当前图片"
   ([root id image]
-   (some-> (gui/select root [(->select-id id)])
-           gui/user-data
-           (reset! image))))
+   (let [ico (gui/icon image)]
+     (some-> (gui/select root [(->select-id id)])
+             (gui/config! :icon ico)))))
 
 (defn draw-rect!
   [root id x y width height]
   (let [lbl (gui/select root [(->select-id id)])
-        img (-> (gui/config lbl :icon)
-                .getImage)]
+        img (get-icon-image lbl)]
     (img/draw-rect! img x y width height)
     (gui/repaint! lbl)))
 
@@ -62,8 +61,7 @@
   "获取当前图片"
   [root id]
   (some-> (gui/select root [(->select-id id)])
-          gui/user-data
-          deref))
+          get-icon-image))
 
 (defn- img->bytes [img format]
   (let [baos (java.io.ByteArrayOutputStream.)]
