@@ -7,7 +7,8 @@
             [piaojuocr.util :as util]
             [piaojuocr.config :as config]
             [piaojuocr.ocr-api :as api]
-            [taoensso.timbre :as log])
+            [taoensso.timbre :as log]
+            [seesaw.table :as table])
   (:import [java.awt Dimension]
            [java.awt.image BufferedImage]
            [javax.swing ImageIcon])
@@ -28,13 +29,13 @@
 
 (defn make-ocr-model [ocr-result]
   [:columns [{:key :words :text "文字"}
-             {:key :prob-average :text "置信度平均值"}
-             {:key :prob-min :text "置信度最小值"}
-             {:key :prob-variance :text "置信度方差"}
-             {:key :left :text "X"}
-             {:key :top :text "Y"}
-             {:key :width :text "宽度"}
-             {:key :height :text "高度"}]
+             {:key :prob-average :text "置信度平均值"  :class java.lang.Double}
+             {:key :prob-min :text "置信度最小值"  :class java.lang.Double}
+             {:key :prob-variance :text "置信度方差"  :class java.lang.Double}
+             {:key :left :text "X"  :class java.lang.Integer}
+             {:key :top :text "Y"  :class java.lang.Integer}
+             {:key :width :text "宽度"  :class java.lang.Integer}
+             {:key :height :text "高度" :class java.lang.Integer}]
    :rows (transform [ALL] format-word-result (:words-result ocr-result))])
 
 (defn make-view [data id]
