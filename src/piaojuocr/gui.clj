@@ -60,18 +60,21 @@
     (gui/alert "没有编辑的图片")))
 
 (def ocr-img (atom nil))
-(defn a-ocr-general [e]
+(defn a-ocr-req [ocr-fn e]
   (try (let [root (gui/to-root e)]
          (if-let [img (iviewer/get-image-bytes root :main-image "jpg")]
-           (let [result (ocr-api/general img ocr-api/options)
+           (let [result (ocr-fn img ocr-api/options)
                  bimg (iviewer/get-image root :main-image)]
-             (log/info "ocr general result words num" (:words-result-num result))
-             (log/trace "ocr general result:" result)
+             (log/info (str ocr-fn) "result words num:" (:words-result-num result))
+             (log/trace (str ocr-fn) "result:" result)
              (reset! ocr-img (img/deep-copy bimg))
              (ocr/set-model! root :main-ocr result))
            (gui/alert "还没有打开图片")))
        (catch Exception e
-         (log/error :a-ocr-general e))))
+         (log/error :a-ocr-req e))))
+
+(def a-ocr-general (partial a-ocr-req ocr-api/general))
+(def a-ocr-accurate-general (partial a-ocr-req ocr-api/accurate-general))
 
 (defn a-ocr-restore [e]
   (when-let [img @ocr-img]
@@ -87,6 +90,7 @@
         a-pic-auto-update (gui/checkbox-menu-item :text "自动更新图片"
                                                   :selected? @auto-update)
         a-ocr-general (gui/action :handler a-ocr-general :name "通用(含位置)" :tip "识别图片中的文字(包含位置信息)")
+        a-ocr-accurate-general (gui/action :handler a-ocr-accurate-general :name "通用高精度(含位置)" :tip "识别图片中的文字-高精度版本，耗时更长(包含位置信息)")
         a-ocr-restore (gui/action :handler a-ocr-restore :name "还原文字标记图片" :tip "还原画了方框的图片")]
     (bind/bind
      (bind/property a-pic-auto-update :selected?)
@@ -94,7 +98,7 @@
     (gui/menubar
      :items [(gui/menu :text "文件" :items [a-open a-save a-exit])
              (gui/menu :text "图片" :items [a-pic-edit a-pic-update a-pic-auto-update])
-             (gui/menu :text "OCR" :items [a-ocr-general a-ocr-restore])])))
+             (gui/menu :text "OCR" :items [a-ocr-general a-ocr-accurate-general :separator a-ocr-restore])])))
 
 (defn make-pic-ocr-view [frame]
   (let [img-panel (iviewer/make-pic-viewer :main-image)

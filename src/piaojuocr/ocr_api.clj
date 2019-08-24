@@ -55,6 +55,7 @@
 
 (defapi basicGeneral [file])
 (defapi basicAccurateGeneral [file])
+(defapi accurateGeneral [file])
 (defapi general [file])
 (defapi custom [file])
 
@@ -77,6 +78,8 @@
   (def opt2 (merge options {"recognize_granularity" "small"}))
 
   (def res6 (general file opt2))
+
+  (def res7 (accurate-general file options))
 
   (def res5 (custom file (assoc options
                                 :template-sign "eecfbc1a6645c46977ed7c5a49dc5c04"
