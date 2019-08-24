@@ -1,7 +1,12 @@
 (ns piaojuocr.util
   (:require [clojure.java.io :as io]
             [taoensso.timbre :as log]
-            [taoensso.timbre.appenders.core :as appenders]))
+            [taoensso.timbre.appenders.core :as appenders])
+  (:import java.lang.System))
+
+(defn java-version []
+  (-> (System/getProperty "java.specification.version")
+      Float.))
 
 (defn replace-keyword
   "修改关键字，f为 str -> str"

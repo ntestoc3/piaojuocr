@@ -49,14 +49,16 @@
   全币关闭返回ture,否则返回false"
   ([] (close-all! false))
   ([force]
-   (when force
-     (unchange-all!))
-   (if (WindowManager/closeAllWindows)
-     (let [main @ij-main]
-       (when-not (.quitting main)
-         (.quit main))
-       (.quitting main))
-     false)))
+   (if-let [main @ij-main]
+     (do (when force
+           (unchange-all!))
+         (if (WindowManager/closeAllWindows)
+           (do
+             (when-not (.quitting main)
+               (.quit main))
+             (.quitting main))
+           false))
+     true)))
 
 (defn- open-window-show-img [img]
   (main-window)
