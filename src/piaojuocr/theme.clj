@@ -6,33 +6,21 @@
             [piaojuocr.util :as util]
             [piaojuocr.config :as config]
             [taoensso.timbre :as log])
-  (:import [javax.swing JFrame UIManager]
-           org.pushingpixels.substance.api.SubstanceCortex$GlobalScope
+  (:import org.pushingpixels.substance.api.SubstanceCortex$GlobalScope
+           [javax.swing JFrame UIManager]
            ))
 
-(defn get-installed-laf []
-  (->> (UIManager/getInstalledLookAndFeels)
-       (map (fn [laf] [(.getName laf)
-                       (.getClassName laf)]))
+
+(defn get-substance-laf []
+  (->> (SubstanceCortex$GlobalScope/getAllSkins)
+       (map (fn [[k v]] [k (.getClassName v)]))
        (into {})))
 
-(def new-version (>= (util/java-version) 9.0))
-;; java 9以上启用substance
-(if new-version
-  (do (log/info "loadding substance theme.")
-      (defn get-substance-laf []
-        (->> (SubstanceCortex$GlobalScope/getAllSkins)
-             (map (fn [[k v]] [k (.getClassName v)]))
-             (into {})))
-      (def all-themes (get-substance-laf)))
-  (def all-themes (get-installed-laf)))
+(def all-themes (get-substance-laf))
 
 (defn set-laf [laf-info]
-  (if new-version
-    (gui/invoke-later
-     (SubstanceCortex$GlobalScope/setSkin laf-info))
-    (gui/invoke-later
-     (UIManager/setLookAndFeel laf-info))))
+  (gui/invoke-later
+   (SubstanceCortex$GlobalScope/setSkin laf-info)))
 
 (defn reset-theme!
   "重置主题为系统默认,这样就可以直接在非swing线程创建swing组件"
@@ -44,21 +32,21 @@
      (reset-theme!)
      (JFrame/setDefaultLookAndFeelDecorated true)
      (let [r# (do ~@body)]
-       (some-> (config/get-config :theme)
-               all-themes
-               set-laf)
+       (-> (config/get-config :theme)
+           all-themes
+           set-laf)
        r#)))
 
 (defn laf-selector []
   (gui/combobox
    :model    (-> (keys all-themes)
                  sort)
-   :selected-item (config/get-config :theme (first (first all-themes)))
+   :selected-item (config/get-config :theme "Moderate")
    :listen   [:selection (fn [e]
                            (let [theme (gui/selection e)]
                              (config/add-config! :theme theme)
                              (log/info "change theme to:" theme)
-                             (some-> theme
-                                     all-themes
-                                     set-laf)))]))
+                             (-> theme
+                                 all-themes
+                                 set-laf)))]))
 
