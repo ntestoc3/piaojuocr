@@ -6,12 +6,18 @@
   :repositories [["vendredi" "https://repository.hellonico.info/repository/hellonico/"]
                  ["spring_plugins" "https://repo.spring.io/plugins-release/"]]
   :dependencies [[org.clojure/clojure "1.10.1"]
-                 [com.baidu.aip/java-sdk "4.11.3"] ; baidu ocr sdk
+                 [com.baidu.aip/java-sdk "4.11.3" :exclusions [org.slf4j/slf4j-api
+                                                               org.slf4j/slf4j-simple]] ; baidu ocr sdk
                  ;; [origami "4.1.1-3" :exclusions [opencv/opencv-native
                  ;;                                 hellonico/gorilla-repl]]
                  [seesaw "1.5.0"] ; swing GUI
                  [camel-snake-kebab/camel-snake-kebab "0.4.0"]
                  [com.taoensso/timbre "4.10.0"] ; logging
+                 ;; [org.slf4j/log4j-over-slf4j "1.7.14"]
+                 ;; [org.slf4j/jul-to-slf4j "1.7.14"]
+                 ;; [org.slf4j/jcl-over-slf4j "1.7.14"]
+                 [com.fzakaria/slf4j-timbre "0.3.14"]
+
                  [com.rpl/specter "1.1.2"] ; dict selector
                  [me.raynes/fs "1.4.6"] ; file util
                  [org.pushing-pixels/radiance-substance "2.0.1"] ;; theme

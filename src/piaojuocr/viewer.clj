@@ -141,7 +141,8 @@
                 :dir (config/get-config :last-choose-dir "./")
                 :type type
                 :success-fn (fn [_ x] (let [p  (.getAbsolutePath x)]
-                                        (->> (.getParent x)
+                                        (->> (fs/file p)
+                                             fs/parent
                                              (config/add-config! :last-choose-dir))
                                         (if (re-find #"\.(jpg|png|jpeg|bmp)$" p)
                                           p
