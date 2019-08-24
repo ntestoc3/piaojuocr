@@ -78,6 +78,7 @@
   (let [lbl (gui/select root [(->select-id id)])
         img (get-icon-image lbl)]
     (img/draw-rect! img x y width height)
+    (gui/scroll! lbl :to [:rect x y width height] )
     (gui/repaint! lbl)))
 
 (defn draw-rects!
@@ -87,6 +88,8 @@
         img (get-icon-image lbl)]
     (doseq [[x y width height] rects]
       (img/draw-rect! img x y width height))
+    (let [[x y width height] (last rects)]
+      (gui/scroll! lbl :to [:rect x y width height] ))
     (gui/repaint! lbl)))
 
 (defn get-image
