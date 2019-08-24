@@ -63,14 +63,20 @@
               :detect-language, "true"
               :probability, "true"})
 
+
 (comment
   (def file (.getPath (clojure.java.io/resource "test2.jpg")))
+
 
   (def res2 (basic-general file options))
 
   (def res3 (basic-accurate-general file options))
 
   (def res4 (general file options))
+
+  (def opt2 (merge options {"recognize_granularity" "small"}))
+
+  (def res6 (general file opt2))
 
   (def res5 (custom file (assoc options
                                 :template-sign "eecfbc1a6645c46977ed7c5a49dc5c04"

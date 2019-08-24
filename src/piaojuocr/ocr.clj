@@ -24,7 +24,8 @@
               (case k
                 :probability (transform [MAP-KEYS] format-prob-key v)
                 :location v
-                [k v])) wr)
+                :words [k v]
+                nil)) wr)
        (apply merge)))
 
 (defn make-ocr-model [ocr-result]
