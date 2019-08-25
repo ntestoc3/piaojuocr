@@ -11,10 +11,12 @@
             [piaojuocr.util :as util]
             [piaojuocr.theme :as theme]
             [piaojuocr.ocr :as ocr]
+            [piaojuocr.ocr-table :as ocr-table]
             [piaojuocr.mapviewer :as mapviewer]
             [piaojuocr.ocr-api :as ocr-api]
             [taoensso.timbre :as log]
-            [piaojuocr.img :as img])
+            [piaojuocr.img :as img]
+            [piaojuocr.ocr-api :as api])
   (:use com.rpl.specter))
 
 (defn a-open [e]
@@ -67,27 +69,37 @@
     (gui/show-card! panel card-id)))
 
 (def ocr-img (atom nil))
-(defn a-ocr-req [ocr-fn result-type e]
+(defn a-ocr-req
+  "请求ocr函数，并对结果进行处理"
+  [ocr-fn args result-type e]
   (try (let [root (gui/to-root e)
-             table-menu-item (gui/select root [(util/->select-id :menu-show-table)])
+             location-menu-item (gui/select root [(util/->select-id :menu-show-location)])
              json-menu-item (gui/select root [(util/->select-id :menu-show-json)])
+             table-menu-item (gui/select root [(util/->select-id :menu-show-table)])
              ]
          (if-let [img (iviewer/get-image-bytes root :main-image "jpg")]
-           (let [result (ocr-fn img ocr-api/options)
+           (let [result (apply ocr-fn img args)
                  bimg (iviewer/get-image root :main-image)]
              (log/trace (str ocr-fn) "result:" result)
              (case result-type
-               :table
+               :location
                (do
-                 (log/info (str ocr-fn) "table result words num:" (:words-result-num result))
-                 (gui/selection! table-menu-item true)
+                 (log/info (str ocr-fn) "words location result count:" (:words-result-num result))
+                 (gui/selection! location-menu-item true)
                  (reset! ocr-img (img/deep-copy bimg))
                  (ocr/set-model! root :main-ocr result))
                :json
                (do
-                 (log/info (str ocr-fn) "json result return.")
+                 (log/info (str ocr-fn) "json return.")
                  (gui/selection! json-menu-item true)
-                 (mapviewer/set-model! root :main-json result))))
+                 (mapviewer/set-model! root :main-json result))
+               :table
+               (do
+                 (log/info (str ocr-fn) "table result form-num:" (:form-num result))
+                 (gui/selection! table-menu-item true)
+                 (reset! ocr-img (img/deep-copy bimg))
+                 (ocr-table/set-model! root :main-ocr-table result))
+               (log/error :a-ocr-req "unknown result type" result-type)))
            (gui/alert "还没有打开图片")))
        (catch Exception e
          (log/error :a-ocr-req e))))
@@ -99,8 +111,13 @@
    (ocr-action api-fn (-> api-fn meta :doc) result-type))
 
   ([api-fn item-name result-type]
-   (let [my-fn #(a-ocr-req api-fn result-type %1)]
+   (ocr-action api-fn [api/options] item-name result-type))
+
+  ([api-fn args item-name result-type]
+   (let [my-fn #(a-ocr-req api-fn args result-type %1)]
      (gui/action :handler my-fn :name item-name))))
+
+
 
 (defn a-ocr-restore [e]
   (when-let [img @ocr-img]
@@ -116,13 +133,16 @@
         a-pic-auto-update (gui/checkbox-menu-item :text "自动更新图片"
                                                   :selected? @auto-update)
         panel-group (gui/button-group)
-        a-show-table-result (gui/radio-menu-item :group panel-group
-                                                 :id :menu-show-table
+        a-show-location-result (gui/radio-menu-item :group panel-group
+                                                 :id :menu-show-location
                                                  :selected? true
-                                                 :text "table结果页")
+                                                 :text "带位置单词结果页")
         a-show-json-result (gui/radio-menu-item :group panel-group
                                                 :id :menu-show-json
                                                 :text "json结果页")
+        a-show-table-result (gui/radio-menu-item :group panel-group
+                                                :id :menu-show-table
+                                                :text "表格结果页")
         a-ocr-restore (gui/action :handler a-ocr-restore :name "还原文字标记图片" :tip "还原画了方框的图片")
         ]
     (bind/bind
@@ -132,11 +152,11 @@
      :items [(gui/menu :text "文件" :items [a-open a-save a-exit])
              (gui/menu :text "图片" :items [a-pic-edit a-pic-update a-pic-auto-update])
              (gui/menu :text "OCR" :items [
-                                           (ocr-action #'ocr-api/general :table)
-                                           (ocr-action #'ocr-api/accurate-general :table)
-                                           (ocr-action #'ocr-api/receipt  :table)
+                                           (ocr-action #'ocr-api/general :location)
+                                           (ocr-action #'ocr-api/accurate-general :location)
+                                           (ocr-action #'ocr-api/receipt  :location)
                                            :separator
-                                           (ocr-action #'ocr-api/table-recognize-to-json :json)
+                                           (ocr-action #'ocr-api/table-recognize-to-json nil "表格识别" :table)
                                            (ocr-action #'ocr-api/vat-invoice :json)
                                            :separator
                                            (ocr-action #'ocr-api/passport :json)
@@ -147,54 +167,78 @@
                                            (ocr-action #'ocr-api/driving-license :json)
                                            (ocr-action #'ocr-api/bankcard :json)
                                            :separator
-                                           a-show-table-result
+                                           a-show-location-result
                                            a-show-json-result
+                                           a-show-table-result
                                            :separator
                                            a-ocr-restore])])))
 
 (defn make-pic-ocr-view [frame]
   (let [img-panel (iviewer/make-pic-viewer :main-image)
         ocr-panel (ocr/make-view [] :main-ocr)
-        json-panel (mapviewer/make-view nil :main-json)]
+        json-panel (mapviewer/make-view nil :main-json)
+        table-panel (ocr-table/make-view nil :main-ocr-table)
+        ]
     (gui/left-right-split img-panel
                           (gui/card-panel
                            :id :switcher
-                           :items [[ocr-panel :table]
-                                   [json-panel :json]])
+                           :items [[ocr-panel :location]
+                                   [json-panel :json]
+                                   [table-panel :table]])
                           :divider-location 0.5)))
 
 
+(defn draw-image-rects! [root rects]
+  (let [new-img (img/deep-copy @ocr-img)]
+    (log/info :draw-image-rects (count rects))
+    (iviewer/set-image! root :main-image new-img)
+    (->> rects
+         vec
+         (transform [ALL] (fn [loc]
+                            [(:left loc)
+                             (:top loc)
+                             (:width loc)
+                             (:height loc)]))
+         (iviewer/draw-rects! root :main-image))))
+
 (defn tbl-sel-draw! [root ocr-tbl e]
-  (when-some [sels (gui/selection ocr-tbl {:multi? true})]
-    (let [new-img (img/deep-copy @ocr-img)]
-      (log/info :tbl-sel-draw! (count sels))
-      (iviewer/set-image! root :main-image new-img)
-      (->> (map #(table/value-at ocr-tbl %1) sels)
-           vec
-           (transform [ALL] (fn [loc]
-                              [(:left loc)
-                               (:top loc)
-                               (:width loc)
-                               (:height loc)]))
-           (iviewer/draw-rects! root :main-image)))))
+  (some->> (gui/selection ocr-tbl {:multi? true})
+           (map #(table/value-at ocr-tbl %1))
+           (draw-image-rects! root)))
+
+(defn ocr-table-sel-draw! [root tbl e]
+  "表格结果图片框选绘制"
+  (when-let [sels (seq (ocr-table/get-selected-rects tbl))]
+    (draw-image-rects! root sels)))
 
 (defn add-behaviors
   [root]
   (let [ocr-tbl (gui/select root [(util/->select-id :main-ocr)])
-        table-menu-item (gui/select root [(util/->select-id :menu-show-table)])
+        ocr-table-result (gui/select root [(util/->select-id :main-ocr-table)])
+        location-menu-item (gui/select root [(util/->select-id :menu-show-location)])
         json-menu-item (gui/select root [(util/->select-id :menu-show-json)])
+        table-menu-item (gui/select root [(util/->select-id :menu-show-table)])
         ]
+    ;; 绘制框选事件
     (bind/bind
      (bind/selection ocr-tbl)
      (bind/transform
       #(tbl-sel-draw! root ocr-tbl %1)))
     (bind/bind
-     (bind/selection table-menu-item)
-     (bind/transform (fn [_] (switch-card! root :table))))
+     (bind/selection ocr-table-result)
+     (bind/transform
+      #(ocr-table-sel-draw! root ocr-table-result %1)))
+
+    (bind/bind
+     (bind/selection location-menu-item)
+     (bind/transform (fn [_] (switch-card! root :location))))
     (bind/bind
      (bind/selection json-menu-item)
-     (bind/transform (fn [_] (switch-card! root :json)))
-     )))
+     (bind/transform (fn [_] (switch-card! root :json))))
+    (bind/bind
+     (bind/selection table-menu-item)
+     (bind/transform (fn [_] (switch-card! root :table))))
+    ))
 
 (defn make-main-view [frame]
   (gui/tabbed-panel :placement :top :overflow :scroll
@@ -219,8 +263,8 @@
                    (log/info "close frame window.")
                    (if (img/close-all!)
                      (do
-                       (gui/config! f :on-close :exit)
-                       ;;(gui/config! f :on-close :dispose)
+                       ;;(gui/config! f :on-close :exit)
+                       (gui/config! f :on-close :dispose)
                        (img/remove-image-callback cb)
                        (config/save-config!)
                        (log/info "exit over."))
