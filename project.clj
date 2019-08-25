@@ -22,6 +22,7 @@
                  [com.rpl/specter "1.1.2"] ; dict selector
                  [me.raynes/fs "1.4.6"] ; file util
                  [org.pushing-pixels/radiance-substance "2.0.1"] ;; theme
+                 [cheshire "5.9.0"] ;; json
 
                  ;; https://mvnrepository.com/artifact/net.imagej/ij
                  [net.imagej/ij "1.52p"] ;; image processing

@@ -1,6 +1,7 @@
 (ns piaojuocr.ocr-api
   (:require [camel-snake-kebab.core :refer :all]
             [piaojuocr.config :as config]
+            [cheshire.core :as json]
             [taoensso.timbre :as log])
   (:import com.baidu.aip.ocr.AipOcr))
 
@@ -75,12 +76,19 @@
 (defapi plateLicense "车牌识别" [file])
 (defapi businessLicense "营业执照识别" [file])
 
+(defn format-table-result [data]
+
+  )
+
 (defn table-recognize-to-json
   "表格识别"
   ([file] (table-recognize-to-json file 30000))
   ([file ^java.lang.Long timeout]
-   (json->map
-    (. aip-client tableRecognizeToJson file timeout))))
+   (some-> (. aip-client tableRecognizeToJson file timeout)
+           json->map
+           :result
+           :result-data
+           (json/decode true))))
 
 (def options {:language-type, "CHN_ENG"
               :detect-direction, "true"
