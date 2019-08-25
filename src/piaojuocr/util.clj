@@ -1,8 +1,18 @@
 (ns piaojuocr.util
   (:require [clojure.java.io :as io]
             [taoensso.timbre :as log]
+            [seesaw.core :as gui]
             [taoensso.timbre.appenders.core :as appenders])
   (:import java.lang.System))
+
+(defn show-ui
+  ([widget]
+   (gui/native!)
+   (let [f (gui/frame :title "test ui"
+                      :on-close :dispose
+                      :content widget)]
+     (-> f gui/pack! gui/show!)
+     f)))
 
 (defn java-version []
   (-> (System/getProperty "java.specification.version")

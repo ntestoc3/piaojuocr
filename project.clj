@@ -10,7 +10,8 @@
                                                                org.slf4j/slf4j-simple]] ; baidu ocr sdk
                  ;; [origami "4.1.1-3" :exclusions [opencv/opencv-native
                  ;;                                 hellonico/gorilla-repl]]
-                 [seesaw "1.5.0"] ; swing GUI
+                 [org.swinglabs.swingx/swingx-core "1.6.5-1"]
+                 [seesaw "1.5.0" :exclusions [org.swinglabs.swingx/swingx-core]] ; swing GUI
                  [camel-snake-kebab/camel-snake-kebab "0.4.0"]
                  [com.taoensso/timbre "4.10.0"] ; logging
                  ;; [org.slf4j/log4j-over-slf4j "1.7.14"]

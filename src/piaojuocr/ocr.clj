@@ -4,7 +4,7 @@
             [seesaw.swingx :as guix]
             [seesaw.mig :refer [mig-panel]]
             [seesaw.font :refer [font default-font]]
-            [piaojuocr.util :as util]
+            [piaojuocr.util :as util :refer [show-ui]]
             [piaojuocr.config :as config]
             [piaojuocr.ocr-api :as api]
             [taoensso.timbre :as log]
@@ -48,16 +48,10 @@
     (->> (make-ocr-model data)
          (gui/config! tbl :model))))
 
-(defn- show-ui
-  ([widget]
-   (let [f (gui/frame :title "test ui"
-                      :content widget)]
-     (-> f gui/pack! gui/show!)
-     f)))
+
 
 (comment
 
-  (gui/native!)
 
   (show-ui (make-view  api/res4 :table))
 

@@ -5,7 +5,9 @@
             [seesaw.font :refer [font default-font]]
             [piaojuocr.util :as util]
             [piaojuocr.config :as config]
-            [piaojuocr.theme :refer [laf-selector]]
+            [piaojuocr.theme :refer [laf-selector
+                                     font-selector
+                                     font-size-selector]]
             [taoensso.timbre :as log]))
 
 ;;;; 设置面板
@@ -30,6 +32,20 @@
 
            [(laf-selector)
             "wrap, grow"]
+
+           [(gui/separator)
+            "span,  grow"]
+
+           ["字体选择"]
+
+           [(font-selector)]
+
+           [(gui/separator)
+            "span,  grow"]
+
+           ["字体大小"]
+
+           [(font-size-selector)]
 
            [(gui/separator)
             "span,  grow"]

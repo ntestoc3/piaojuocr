@@ -40,11 +40,12 @@
         (into {}))))
 
 (defmacro defapi
-  [method args]
+  [method doc args]
   (let [fn-name (->kebab-case-symbol (str method))
         str-method (str method)
         method-name (symbol (str "." method))]
     `(defn ~fn-name
+       ~doc
        ([~@args] (~fn-name ~@args {}))
        ([~@args options#]
         (let [opt# (-> (format-options options#)
@@ -53,11 +54,22 @@
           (-> (~method-name aip-client ~@args opt#)
               json->map))))))
 
-(defapi basicGeneral [file])
-(defapi basicAccurateGeneral [file])
-(defapi accurateGeneral [file])
-(defapi general [file])
-(defapi custom [file])
+(defapi basicGeneral "通用识别" [file])
+(defapi basicAccurateGeneral "通用高精度识别" [file])
+(defapi accurateGeneral "通用高精度识别带位置信息" [file])
+(defapi general "通用识别带位置信息" [file])
+(defapi custom "自定义模板识别" [file])
+(defapi receipt "通用票据识别" [file])
+(defapi trainTicket "火车票识别" [file])
+(defapi taxiReceipt "出租车票识别" [file])
+(defapi form "表格文字同步识别" [file])
+(defapi tableRecognitionAsync "表格文字识别,异步接口" [file])
+(defapi tableResultGet "表格异步识别结果" [req-id])
+(defapi tableRecognizeToJson "表格识别轮询借口" [file])
+(defapi vatInvoice "增值税发票识别" [file])
+(defapi passport "护照识别" [file])
+(defapi businessCard "名片识别" [file])
+(defapi handwriting "手写中文识别" [file])
 
 (def options {:language-type, "CHN_ENG"
               :detect-direction, "true"
@@ -82,8 +94,13 @@
   (def res7 (accurate-general file options))
 
   (def res5 (custom file (assoc options
-                                :template-sign "eecfbc1a6645c46977ed7c5a49dc5c04"
+                                ;;:template-sign "eecfbc1a6645c46977ed7c5a49dc5c04"
+                                :template-sign "b50b3a7a70cf1f85ed9c07679dd3f20e"
                                 :type :caml-case)))
 
+
+  (def file2 (.getPath (clojure.java.io/resource "fapiao1.jpg")))
+
+  (def res8 (vat-invoice file2))
 
   )
