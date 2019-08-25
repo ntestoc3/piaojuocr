@@ -17,14 +17,6 @@
             [piaojuocr.img :as img])
   (:use com.rpl.specter))
 
-(defn hide! [root id]
-  (-> (gui/select root [(util/->select-id id)])
-      gui/hide!))
-
-(defn show! [root id]
-  (-> (gui/select root [(util/->select-id id)])
-      gui/show!))
-
 (defn a-open [e]
   (when-let [f (iviewer/choose-pic)]
     (log/debug "open new image file:" f)
@@ -154,12 +146,11 @@
   (let [img-panel (iviewer/make-pic-viewer :main-image)
         ocr-panel (ocr/make-view [] :main-ocr)
         json-panel (mapviewer/make-view nil :main-json)]
-    (gui/hide! json-panel)
     (gui/left-right-split img-panel
-                          (gui/horizontal-panel :items [(gui/card-panel
-                                                         :id :switcher
-                                                         :items [[ocr-panel :table]
-                                                                 [json-panel :json]])])
+                          (gui/card-panel
+                           :id :switcher
+                           :items [[ocr-panel :table]
+                                   [json-panel :json]])
                           :divider-location 0.5)))
 
 

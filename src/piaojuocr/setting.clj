@@ -36,19 +36,18 @@
            [(gui/separator)
             "span,  grow"]
 
-           ["字体选择"]
+           ["字体选择:"
+            "gaptop 10"]
 
-           [(font-selector)]
+           [(font-selector)
+            "wrap"]
 
-           [(gui/separator)
-            "span,  grow"]
-
-           ["字体大小"]
+           ["字体大小:"]
 
            [(font-size-selector)]
 
            [(gui/separator)
-            "span,  grow"]
+            "span, grow"]
 
            [(gui/label :font (font :from (default-font "Label.font") :style :bold)
                        :text "百度API设置")
