@@ -56,13 +56,13 @@
 
 (defn get-selected-cells [tbl]
   "获取选中的单元格,返回[[row col]...]"
-  (for [row (.getSelectedRows tbl)
-        col (.getSelectedColumns tbl)]
+  (for [row (map #(.convertRowIndexToModel tbl %1) (.getSelectedRows tbl))
+        col (map #(.convertColumnIndexToModel tbl %1)(.getSelectedColumns tbl))]
     [row col]))
 
 (defn get-cell-rect [tbl row col]
   "获取一个单元格的区域"
-  (let [v (first (table/value-at tbl [row]))
+  (let [v (table/value-at tbl row)
         rect-key (keyword (str "rect-" (inc col)))]
     (get v rect-key)))
 
