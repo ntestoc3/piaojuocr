@@ -92,11 +92,15 @@
        (catch Exception e
          (log/error :a-ocr-req e))))
 
-(def a-ocr-general (partial a-ocr-req ocr-api/general :table))
-(def a-ocr-accurate-general (partial a-ocr-req ocr-api/accurate-general :table))
-(def a-ocr-receipt (partial a-ocr-req ocr-api/receipt :table))
+(defn ocr-action
+  "定义ocr识别动作,如果不指定item-name,api-fn必须使用#'fn-name 的方式传递
+  使用doc作为item-name"
+  ([api-fn result-type]
+   (ocr-action api-fn (-> api-fn meta :doc) result-type))
 
-(def a-ocr-vat-invoice (partial a-ocr-req ocr-api/vat-invoice :json))
+  ([api-fn item-name result-type]
+   (let [my-fn #(a-ocr-req api-fn result-type %1)]
+     (gui/action :handler my-fn :name item-name))))
 
 (defn a-ocr-restore [e]
   (when-let [img @ocr-img]
@@ -111,10 +115,6 @@
         a-pic-update (gui/action :handler a-pic-update :name "更新图片" :tip "更新显示编辑后的图片")
         a-pic-auto-update (gui/checkbox-menu-item :text "自动更新图片"
                                                   :selected? @auto-update)
-        a-ocr-general (gui/action :handler a-ocr-general :name "通用(含位置)" :tip "识别图片中的文字(包含位置信息)")
-        a-ocr-accurate-general (gui/action :handler a-ocr-accurate-general :name "通用高精度(含位置)" :tip "识别图片中的文字-高精度版本，耗时更长(包含位置信息)")
-        a-ocr-receipt (gui/action :handler a-ocr-receipt :name "通用票据识别")
-        a-ocr-vat-invoice (gui/action :handler a-ocr-vat-invoice :name "增值税发票识别")
         panel-group (gui/button-group)
         a-show-table-result (gui/radio-menu-item :group panel-group
                                                  :id :menu-show-table
@@ -131,11 +131,21 @@
     (gui/menubar
      :items [(gui/menu :text "文件" :items [a-open a-save a-exit])
              (gui/menu :text "图片" :items [a-pic-edit a-pic-update a-pic-auto-update])
-             (gui/menu :text "OCR" :items [a-ocr-general
-                                           a-ocr-accurate-general
-                                           a-ocr-receipt
+             (gui/menu :text "OCR" :items [
+                                           (ocr-action #'ocr-api/general :table)
+                                           (ocr-action #'ocr-api/accurate-general :table)
+                                           (ocr-action #'ocr-api/receipt  :table)
                                            :separator
-                                           a-ocr-vat-invoice
+                                           (ocr-action #'ocr-api/table-recognize-to-json :json)
+                                           (ocr-action #'ocr-api/vat-invoice :json)
+                                           :separator
+                                           (ocr-action #'ocr-api/passport :json)
+                                           (ocr-action #'ocr-api/taxi-receipt :json)
+                                           (ocr-action #'ocr-api/train-ticket :json)
+                                           (ocr-action #'ocr-api/business-license :json)
+                                           (ocr-action #'ocr-api/plate-license :json)
+                                           (ocr-action #'ocr-api/driving-license :json)
+                                           (ocr-action #'ocr-api/bankcard :json)
                                            :separator
                                            a-show-table-result
                                            a-show-json-result

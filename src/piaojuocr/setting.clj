@@ -5,9 +5,7 @@
             [seesaw.font :refer [font default-font]]
             [piaojuocr.util :as util]
             [piaojuocr.config :as config]
-            [piaojuocr.theme :refer [laf-selector
-                                     font-selector
-                                     font-size-selector]]
+            [piaojuocr.theme :refer [laf-selector]]
             [taoensso.timbre :as log]))
 
 ;;;; 设置面板
@@ -35,19 +33,6 @@
 
            [(gui/separator)
             "span,  grow"]
-
-           ["字体选择:"
-            "gaptop 10"]
-
-           [(font-selector)
-            "wrap"]
-
-           ["字体大小:"]
-
-           [(font-size-selector)]
-
-           [(gui/separator)
-            "span, grow"]
 
            [(gui/label :font (font :from (default-font "Label.font") :style :bold)
                        :text "百度API设置")

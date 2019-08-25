@@ -32,12 +32,13 @@
     json))
 
 (defn format-options
-  [options]
-  (let [key-fn (if (= :caml-case (get options :type))
+  [option]
+  (let [key-fn (if (= :caml-case (get option :type))
                  ->camelCaseString
                  ->snake_case_string)]
-      (->> (map (fn [[k v]] [(key-fn k) (str v)]) options)
-        (into {}))))
+    (->> (map (fn [[k v]] [(key-fn k) (str v)]) option)
+         (into {})
+         java.util.HashMap.)))
 
 (defmacro defapi
   [method doc args]
@@ -48,28 +49,38 @@
        ~doc
        ([~@args] (~fn-name ~@args {}))
        ([~@args options#]
-        (let [opt# (-> (format-options options#)
-                       java.util.HashMap.)]
+        (let [opt#  (format-options options#)]
           (log/info "baidu-ocr api:" ~str-method "options:" opt#)
           (-> (~method-name aip-client ~@args opt#)
               json->map))))))
 
 (defapi basicGeneral "通用识别" [file])
 (defapi basicAccurateGeneral "通用高精度识别" [file])
-(defapi accurateGeneral "通用高精度识别带位置信息" [file])
-(defapi general "通用识别带位置信息" [file])
+(defapi accurateGeneral "通用高精度识别(位置信息)" [file])
+(defapi general "通用识别(位置信息)" [file])
 (defapi custom "自定义模板识别" [file])
 (defapi receipt "通用票据识别" [file])
 (defapi trainTicket "火车票识别" [file])
 (defapi taxiReceipt "出租车票识别" [file])
-(defapi form "表格文字同步识别" [file])
-(defapi tableRecognitionAsync "表格文字识别,异步接口" [file])
+(defapi form "表单识别" [file])
+(defapi tableRecognitionAsync "表格异步识别" [file])
 (defapi tableResultGet "表格异步识别结果" [req-id])
-(defapi tableRecognizeToJson "表格识别轮询借口" [file])
 (defapi vatInvoice "增值税发票识别" [file])
 (defapi passport "护照识别" [file])
 (defapi businessCard "名片识别" [file])
 (defapi handwriting "手写中文识别" [file])
+(defapi bankcard "银行卡识别" [file])
+(defapi idcard "身份证识别" [file card-side])
+(defapi drivingLicense "行驶证识别" [file])
+(defapi plateLicense "车牌识别" [file])
+(defapi businessLicense "营业执照识别" [file])
+
+(defn table-recognize-to-json
+  "表格识别"
+  ([file] (table-recognize-to-json file 30000))
+  ([file ^java.lang.Long timeout]
+   (json->map
+    (. aip-client tableRecognizeToJson file timeout))))
 
 (def options {:language-type, "CHN_ENG"
               :detect-direction, "true"
@@ -102,5 +113,7 @@
   (def file2 (.getPath (clojure.java.io/resource "fapiao1.jpg")))
 
   (def res8 (vat-invoice file2))
+
+  (def res9 (table-recognize-to-json file))
 
   )
