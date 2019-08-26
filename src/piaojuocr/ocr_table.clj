@@ -19,8 +19,11 @@
    (range start (inc end))))
 
 (defn format-cell [cell]
-  (for [row (apply cell-range (:row cell))
-        col (apply cell-range (:column cell))]
+  (for [;;row (apply cell-range (:row cell))
+        ;;col (apply cell-range (:column cell))
+        row (:row cell)
+        col (:column cell)
+        ]
     (merge cell
            {:column col
             :row row})))
@@ -44,8 +47,19 @@
            (range 1)
            (map #(keyword (str "column-" %1)))))
 
+(defn fix-top-left [rows]
+  (transform [ALL :rect] (fn [rect]
+                           (assoc rect
+                                  :top (:left rect)
+                                  :left (:top rect)))
+             rows))
+
 (defn format-form [form]
-  (mapcat (comp format-rows val) form))
+  ;;; 返回结果中header和footer的top和left是反的,需要纠正。
+  (let [footer (fix-top-left (:footer form))
+        header (fix-top-left (:header form))
+        body (:body form)]
+    (mapcat format-rows [header body footer])))
 
 (defn make-model [data]
   (let [rows (some->> (:forms data)
@@ -60,13 +74,25 @@
         col (.getSelectedColumns tbl)]
     [row col]))
 
-(defn get-cell-rect [tbl row col]
-  "获取一个单元格的区域"
-  (let [row (.convertRowIndexToModel tbl row)
+(defn get-row-value [tbl row]
+  (->> (.convertRowIndexToModel tbl row)
+       (table/value-at tbl)))
+
+(defn get-cell-value
+  "获取table的单元格值"
+  [tbl row col]
+  (let [row (get-row-value tbl row)
         col (.convertColumnIndexToModel tbl col)
-        v (table/value-at tbl row)
-        rect-key (keyword (str "rect-" (inc col)))]
-    (get v rect-key)))
+        rect-key (keyword (str "rect-" (inc col)))
+        word-key (keyword (str "column-" (inc col)))]
+    {:rect (get row rect-key)
+     :word (get row word-key)}))
+
+(defn get-cell-rect
+  "获取一个单元格的区域"
+  [tbl row col]
+  (some-> (get-cell-value tbl row col)
+          :rect))
 
 (defn get-selected-rects [tbl]
   (some->> (get-selected-cells tbl)
@@ -81,8 +107,8 @@
        ^java.lang.Boolean has-focus
        ^java.lang.Integer row
        ^java.lang.Integer column]
-      (some->> (get-cell-rect tbl row column)
-               (str "rect:" )
+      (some->> (get-cell-value tbl row column)
+               (str "value:" )
                (.setToolTipText this))
       (proxy-super getTableCellRendererComponent tbl value selected has-focus row column))))
 
@@ -125,5 +151,9 @@
 
   (util/show-ui (make-view [] :test))
 
+
+  (fix-top-left (:footer (first (:forms api/res9))))
+
+  (fix-top-left (:header (first (:forms api/res9))))
 
   )

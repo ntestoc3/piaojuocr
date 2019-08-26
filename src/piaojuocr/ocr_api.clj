@@ -53,6 +53,8 @@
         (let [opt#  (format-options options#)]
           (log/info "baidu-ocr api:" ~str-method "options:" opt#)
           (-> (~method-name aip-client ~@args opt#)
+              (doto
+                  #(log/trace ~str-method "return raw" %1))
               json->map))))))
 
 (defapi basicGeneral "通用识别" [file])
@@ -86,6 +88,8 @@
   ([file ^java.lang.Long timeout]
    (some-> (. aip-client tableRecognizeToJson file timeout)
            json->map
+           (doto
+               #(log/trace :table-recognize-to-json "return" %1))
            :result
            :result-data
            (json/decode true))))

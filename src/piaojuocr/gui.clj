@@ -95,7 +95,7 @@
                  (mapviewer/set-model! root :main-json result))
                :table
                (do
-                 (log/info (str ocr-fn) "table result form-num:" (:form-num result))
+                 (log/info (str ocr-fn) "table result form-num:" (:form_num result))
                  (gui/selection! table-menu-item true)
                  (reset! ocr-img (img/deep-copy bimg))
                  (ocr-table/set-model! root :main-ocr-table result))
@@ -209,6 +209,7 @@
 (defn ocr-table-sel-draw! [root tbl e]
   "表格结果图片框选绘制"
   (when-let [sels (seq (ocr-table/get-selected-rects tbl))]
+    (log/info :ocr-table-sel-draw! sels)
     (draw-image-rects! root sels)))
 
 (defn add-behaviors
