@@ -136,7 +136,9 @@
                                 (let [root (gui/to-frame p)
                                       templates-lst (gui/select root [:#iocr-templates-list])
                                       classifier-txt (gui/select root [:#classifier-text])
-                                      template-sign (gui/selection templates-lst)
+                                      template-sign (->> (gui/selection templates-lst)
+                                                         (table/value-at templates-lst)
+                                                         :id)
                                       use-classifier (config/get-config :use-classifier false)
                                       classifier-id (when use-classifier
                                                       (gui/text classifier-txt))]
