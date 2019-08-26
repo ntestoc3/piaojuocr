@@ -11,14 +11,17 @@
 ;;;; 设置面板
 (defn text-config-panel
   "创建文本配置项"
-  ([id config-path] (text-config-panel id config-path identity))
-  ([id config-path text-trans-fn]
-   (gui/text :id id
-             :text (str (config/get-in-config config-path))
-             :listen [:document (fn [e]
-                                  (->> (gui/text e)
-                                       text-trans-fn
-                                       (config/add-in-config! config-path)))])))
+  ([id config-path] (text-config-panel id config-path identity nil))
+  ([id config-path options] (text-config-panel id config-path identity options))
+  ([id config-path text-trans-fn options]
+   (apply gui/text
+          :id id
+          :text (str (config/get-in-config config-path))
+          :listen [:document (fn [e]
+                               (->> (gui/text e)
+                                    text-trans-fn
+                                    (config/add-in-config! config-path)))]
+          options)))
 
 
 (defn make-view

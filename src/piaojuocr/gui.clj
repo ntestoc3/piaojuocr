@@ -297,8 +297,8 @@
                    (log/info "close frame window.")
                    (if (img/close-all!)
                      (do
-                       ;; (gui/config! f :on-close :exit)
-                       (gui/config! f :on-close :dispose)
+                       (gui/config! f :on-close :exit)
+                       ;; (gui/config! f :on-close :dispose)
                        (img/remove-image-callback cb)
                        (config/save-config!)
                        (log/info "exit over."))

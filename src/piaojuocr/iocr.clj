@@ -14,81 +14,123 @@
             [clojure.java.io :as io]))
 
 
+(defn make-tpl-info-model [data]
+  [:columns [{:key :name :text "名称"}
+             {:key :id :text "Id"}]
+   :rows data])
+
 (defn update-template! [root update-fn]
   (let [tmpl-list (gui/select root [:#iocr-templates-list])
         templates (config/get-config :iocr-templates #{})
         new-tmpl (update-fn templates)]
-    (gui/config! tmpl-list :model new-tmpl)
+    (->> (make-tpl-info-model new-tmpl)
+         (gui/config! tmpl-list :model))
     (config/add-config! :iocr-templates new-tmpl)))
 
 (def add-template! #(update-template! %1 (fn [tmpls] (conj tmpls %2))))
 (def remove-template! #(update-template! %1 (fn [tmpls] (disj tmpls %2))))
 
+(defn template-info-dlg [parent]
+  (-> (gui/dialog
+       :modal? true
+       :parent parent
+       :option-type :ok-cancel
+       :type :question
+       :content (mig-panel
+                 :id :template-info-input-form
+                 :constraints ["fill"]
+                 :items [["名称:"
+                          "right"
+                          ]
+                         [(gui/text :id :tpl-name)
+                          "wrap, grow, wmin 250,"]
+
+                         ["模板id:"
+                          "right"]
+                         [(gui/text :id :tpl-id)
+                          "grow"]])
+       :success-fn (fn [p]
+                     (let [root (gui/to-root p)
+                           name (-> (gui/select root [:#tpl-name])
+                                     gui/text)
+                           id (-> (gui/select root [:#tpl-id])
+                                  gui/text)]
+                       (if (or (empty? name)
+                               (empty? id))
+                         (gui/alert "模板名称和id不能为空")
+                         {:name name
+                          :id id})))
+       :cancel-fn (fn [p] nil))
+      gui/pack!
+      gui/show!))
+
 (defn make-template-form []
-  (mig-panel
-   :id :template-form
-   :border (border/empty-border :left 10 :top 10)
-   :constraints ["fill"]
-   :items [
-           ["选择模板id:"
-            "right"]
+  (let [use-classifier (config/get-config :use-classifier false)]
+    (mig-panel
+    :id :template-form
+    :border (border/empty-border :left 10 :top 10)
+    :constraints ["fill"]
+    :items [
+            ["选择模板id:"
+             "right"]
 
-           [(gui/listbox
-             :border [5 "模板列表" 10]
-             :id :iocr-templates-list
-             :model (config/get-config :iocr-templates #{}))
-            " grow, wmin 250, hmin 250"]
+            [(gui/scrollable
+              (gui/table
+               :id :iocr-templates-list
+               :model (make-tpl-info-model
+                       (config/get-config :iocr-templates []))))
+             "grow, wmin 250, hmin 250"]
 
-           [(mig-panel
-             :border (border/empty-border :left 10 :top 10)
-             :items [
-                     [(gui/button :text "添加"
-                                  :icon (io/resource "add.png")
-                                  :listen [:action
-                                           (fn [e]
-                                             (let [root (gui/to-root e)
-                                                   new-val (gui/input "输入模板id"
-                                                                      :title "添加模板"
-                                                                      :type :question)]
-                                               (when new-val
-                                                 (add-template! root new-val))))])
-                      "wrap"]
+            [(mig-panel
+              :border (border/empty-border :left 10 :top 10)
+              :items [
+                      [(gui/button :text "添加"
+                                   :icon (io/resource "add.png")
+                                   :listen [:action
+                                            (fn [e]
+                                              (let [root (gui/to-root e)
+                                                    new-val (template-info-dlg root)]
+                                                (when new-val
+                                                  (add-template! root new-val))))])
+                       "wrap"]
 
-                     [(gui/button :text "删除"
-                                  :icon (io/resource "del.png")
-                                  :listen [:action
-                                           (fn [e]
-                                             (let [root (gui/to-root e)]
-                                               (some->> (gui/select root [:#iocr-templates-list])
-                                                        gui/selection
-                                                        (remove-template! root))))])
-                      "wrap"]
-                     ])
-            "wrap"]
+                      [(gui/button :text "删除"
+                                   :icon (io/resource "del.png")
+                                   :listen [:action
+                                            (fn [e]
+                                              (let [root (gui/to-root e)
+                                                    tbl (gui/select root [:#iocr-templates-list])]
+                                                (some->> (gui/selection tbl)
+                                                         (table/value-at tbl)
+                                                         (remove-template! root))))])
+                       "wrap"]
+                      ])
+             "wrap"]
 
-           [(gui/checkbox :text "使用分类器:"
-                          :id :use-classifier-check
-                          :selected? (config/get-config :use-classifier false)
-                          :listen [:selection
-                                   (fn [e]
-                                     (let [root (gui/to-root e)
-                                           sel (gui/selection e)]
-                                       (config/add-config! :use-classifier sel)
-                                       (gui/config! (-> root
-                                                        (gui/select [:#classifier-text]))
-                                                    :enabled?
-                                                    sel)))])
-            "right"]
+            [(gui/checkbox :text "使用分类器:"
+                           :id :use-classifier-check
+                           :selected? use-classifier
+                           :listen [:selection
+                                    (fn [e]
+                                      (let [root (gui/to-root e)
+                                            sel (gui/selection e)]
+                                        (config/add-config! :use-classifier sel)
+                                        (gui/config! (-> root
+                                                         (gui/select [:#classifier-text]))
+                                                     :enabled?
+                                                     sel)))])
+             "right"]
 
-           [(text-config-panel :classifier-text [:classifier-id])
-            "wrap, wmin 250, growx"]
+            [(text-config-panel :classifier-text [:classifier-id] [:enabled? use-classifier])
+             "wrap, wmin 250, growx"]
 
-           [(gui/separator)
-            "span, grow, gaptop 10"]
-           ]))
+            [(gui/separator)
+             "span, grow, gaptop 10"]
+            ])))
 
 (defn make-template-dlg [id]
   (-> (gui/dialog :id id
+                  :modal? true
                   :title "选择模板或者分类器"
                   :success-fn (fn [p]
                                 (let [root (gui/to-frame p)
