@@ -7,6 +7,7 @@
             [piaojuocr.viewer :as iviewer]
             [piaojuocr.logging :as logging]
             [piaojuocr.setting :as setting]
+            [piaojuocr.iocr :as iocr]
             [piaojuocr.config :as config]
             [piaojuocr.util :as util]
             [piaojuocr.theme :as theme]
@@ -76,6 +77,7 @@
              location-menu-item (gui/select root [(util/->select-id :menu-show-location)])
              json-menu-item (gui/select root [(util/->select-id :menu-show-json)])
              table-menu-item (gui/select root [(util/->select-id :menu-show-table)])
+             iocr-menu-item (gui/select root [(util/->select-id :menu-show-iocr)])
              ]
          (if-let [img (iviewer/get-image-bytes root :main-image "jpg")]
            (let [result (apply ocr-fn img args)
@@ -99,6 +101,12 @@
                  (gui/selection! table-menu-item true)
                  (reset! ocr-img (img/deep-copy bimg))
                  (ocr-table/set-model! root :main-ocr-table result))
+               :iocr
+               (do
+                 (log/info (str ocr-fn) "iocr result count:" (count result))
+                 (gui/selection! iocr-menu-item true)
+                 (reset! ocr-img (img/deep-copy bimg))
+                 (ocr/set-model! root :main-iocr (ocr/make-iocr-model result)))
                (log/error :a-ocr-req "unknown result type" result-type)))
            (gui/alert "还没有打开图片")))
        (catch Exception e
@@ -124,6 +132,11 @@
     (log/trace :a-ocr-restore)
     (iviewer/set-image! (gui/to-root e) :main-image img)))
 
+(defn a-iocr-action [e]
+  (let [options (iocr/make-template-dlg :iocr-dlg)]
+    (when options
+      (a-ocr-req api/custom [options] :iocr e))))
+
 (defn make-menus []
   (let [a-open (gui/action :handler a-open :name "打开" :tip "打开图片文件" :key "menu O")
         a-save (gui/action :handler a-save :name "保存" :tip "保存当前图片" :key "menu S")
@@ -134,15 +147,18 @@
                                                   :selected? @auto-update)
         panel-group (gui/button-group)
         a-show-location-result (gui/radio-menu-item :group panel-group
-                                                 :id :menu-show-location
-                                                 :selected? true
-                                                 :text "带位置单词结果页")
+                                                    :id :menu-show-location
+                                                    :selected? true
+                                                    :text "带位置单词结果页")
         a-show-json-result (gui/radio-menu-item :group panel-group
                                                 :id :menu-show-json
                                                 :text "json结果页")
         a-show-table-result (gui/radio-menu-item :group panel-group
-                                                :id :menu-show-table
-                                                :text "表格结果页")
+                                                 :id :menu-show-table
+                                                 :text "表格结果页")
+        a-show-iocr-result (gui/radio-menu-item :group panel-group
+                                                :id :menu-show-iocr
+                                                :text "模板识别结果页")
         a-ocr-restore (gui/action :handler a-ocr-restore :name "还原文字标记图片" :tip "还原画了方框的图片")
         ]
     (bind/bind
@@ -159,6 +175,8 @@
                                            (ocr-action #'ocr-api/table-recognize-to-json nil "表格识别" :table)
                                            (ocr-action #'ocr-api/vat-invoice :json)
                                            :separator
+                                           (gui/action :handler a-iocr-action :name "iocr模板识别")
+                                           :separator
                                            (ocr-action #'ocr-api/passport :json)
                                            (ocr-action #'ocr-api/taxi-receipt :json)
                                            (ocr-action #'ocr-api/train-ticket :json)
@@ -170,21 +188,25 @@
                                            a-show-location-result
                                            a-show-json-result
                                            a-show-table-result
+                                           a-show-iocr-result
                                            :separator
                                            a-ocr-restore])])))
 
 (defn make-pic-ocr-view [frame]
+  "创建识别页面视图"
   (let [img-panel (iviewer/make-pic-viewer :main-image)
         ocr-panel (ocr/make-view (ocr/make-ocr-model []) :main-ocr)
         json-panel (mapviewer/make-view nil :main-json)
         table-panel (ocr-table/make-view nil :main-ocr-table)
+        iocr-panel (ocr/make-view (ocr/make-iocr-model []) :main-iocr)
         ]
     (gui/left-right-split img-panel
                           (gui/card-panel
                            :id :switcher
                            :items [[ocr-panel :location]
                                    [json-panel :json]
-                                   [table-panel :table]])
+                                   [table-panel :table]
+                                   [iocr-panel :iocr]])
                           :divider-location 0.5)))
 
 
@@ -216,9 +238,11 @@
   [root]
   (let [ocr-tbl (gui/select root [(util/->select-id :main-ocr)])
         ocr-table-result (gui/select root [(util/->select-id :main-ocr-table)])
+        iocr-table (gui/select root [(util/->select-id :main-iocr)])
         location-menu-item (gui/select root [(util/->select-id :menu-show-location)])
         json-menu-item (gui/select root [(util/->select-id :menu-show-json)])
         table-menu-item (gui/select root [(util/->select-id :menu-show-table)])
+        iocr-menu-item (gui/select root [(util/->select-id :menu-show-iocr)])
         ]
     ;; 绘制框选事件
     (bind/bind
@@ -229,6 +253,10 @@
      (bind/selection ocr-table-result)
      (bind/transform
       #(ocr-table-sel-draw! root ocr-table-result %1)))
+    (bind/bind
+     (bind/selection iocr-table)
+     (bind/transform
+      #(tbl-sel-draw! root iocr-table %1)))
 
     (bind/bind
      (bind/selection location-menu-item)
@@ -239,6 +267,9 @@
     (bind/bind
      (bind/selection table-menu-item)
      (bind/transform (fn [_] (switch-card! root :table))))
+    (bind/bind
+     (bind/selection iocr-menu-item)
+     (bind/transform (fn [_] (switch-card! root :iocr))))
     ))
 
 (defn make-main-view [frame]
@@ -264,8 +295,8 @@
                    (log/info "close frame window.")
                    (if (img/close-all!)
                      (do
-                       ;;(gui/config! f :on-close :exit)
-                       (gui/config! f :on-close :dispose)
+                       (gui/config! f :on-close :exit)
+                       ;; (gui/config! f :on-close :dispose)
                        (img/remove-image-callback cb)
                        (config/save-config!)
                        (log/info "exit over."))

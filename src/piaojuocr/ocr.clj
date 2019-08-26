@@ -27,23 +27,27 @@
                 [k v])) wr)
        (apply merge)))
 
-(def prob-loc-cols-info '({:key :prob-average :text "置信度平均值"  :class java.lang.Double}
-                          {:key :prob-min :text "置信度最小值"  :class java.lang.Double}
-                          {:key :prob-variance :text "置信度方差"  :class java.lang.Double}
-                          {:key :left :text "X"  :class java.lang.Integer}
-                          {:key :top :text "Y"  :class java.lang.Integer}
-                          {:key :width :text "宽度"  :class java.lang.Integer}
-                          {:key :height :text "高度" :class java.lang.Integer}))
+(def prob-loc-cols-info [{:key :prob-average :text "置信度平均值"  :class java.lang.Double}
+                         {:key :prob-min :text "置信度最小值"  :class java.lang.Double}
+                         {:key :prob-variance :text "置信度方差"  :class java.lang.Double}
+                         {:key :left :text "X"  :class java.lang.Integer}
+                         {:key :top :text "Y"  :class java.lang.Integer}
+                         {:key :width :text "宽度"  :class java.lang.Integer}
+                         {:key :height :text "高度" :class java.lang.Integer}])
 
 (defn make-ocr-model [ocr-result]
-  [:columns (conj prob-loc-cols-info {:key :words :text "文字"})
-   :rows (transform [ALL] format-word-result (:words-result ocr-result))])
+  (table/table-model
+   :columns (conj (seq prob-loc-cols-info)
+                  {:key :words :text "文字" :class java.lang.String})
+   :rows (transform [ALL] format-word-result (:words-result ocr-result))))
 
 (defn make-iocr-model [iocr-result]
-  [:columns (vec (conj prob-loc-cols-info
-                       {:key :word :text "文字"}
-                       {:key :word-name :text "字段名"}))
-   :rows (transform [ALL] format-word-result (get-in iocr-result [:data :ret]))])
+  (table/table-model
+   :columns   (conj (seq prob-loc-cols-info)
+                    {:key :word :text "文字"}
+                    {:key :word-name :text "字段名"})
+   :rows (transform [ALL] format-word-result (get-in iocr-result [:data :ret]))))
+
 
 (defn make-view [model id]
   (gui/scrollable (guix/table-x :id id
@@ -59,7 +63,7 @@
 
   (gui/native!)
 
-  (show-ui (make-view (make-ocr-model []):table))
+  (show-ui (make-view (make-ocr-model nil) :table))
 
   (show-ui (make-view  (make-ocr-model api/res4) :table))
 

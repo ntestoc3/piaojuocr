@@ -32,6 +32,7 @@
             "right"]
 
            [(gui/listbox
+             :border [5 "模板列表" 10]
              :id :iocr-templates-list
              :model (config/get-config :iocr-templates #{}))
             " grow, wmin 250, hmin 250"]
@@ -83,30 +84,32 @@
            ]))
 
 (defn make-template-dlg [id]
-  (gui/dialog :id id
-              :title "选择模板或者分类器"
-              :success-fn (fn [p]
-                            (let [root (gui/to-frame p)
-                                  templates-lst (gui/select root [:#iocr-templates-list])
-                                  classifier-txt (gui/select root [:#classifier-text])
-                                  template-sign (gui/selection templates-lst)
-                                  use-classifier (config/get-config :use-classifier false)
-                                  classifier-id (when use-classifier
-                                                  (gui/text classifier-txt))]
-                              (if-not (or template-sign
-                                          use-classifier)
-                                (gui/alert "没有选择任何模板或分类器")
-                                (cond-> {:type :caml-case}
-                                  template-sign (assoc :template-sign template-sign)
-                                  classifier-id (assoc :classifier-id classifier-id)))))
-              :cancel-fn (fn [p] nil)
-              :minimum-size [480 :by 400]
-              :option-type :ok-cancel
-              :content (make-template-form)
-              ))
+  (-> (gui/dialog :id id
+                  :title "选择模板或者分类器"
+                  :success-fn (fn [p]
+                                (let [root (gui/to-frame p)
+                                      templates-lst (gui/select root [:#iocr-templates-list])
+                                      classifier-txt (gui/select root [:#classifier-text])
+                                      template-sign (gui/selection templates-lst)
+                                      use-classifier (config/get-config :use-classifier false)
+                                      classifier-id (when use-classifier
+                                                      (gui/text classifier-txt))]
+                                  (if-not (or template-sign
+                                              use-classifier)
+                                    (gui/alert "没有选择任何模板或分类器")
+                                    (cond-> {:type :caml-case}
+                                      template-sign (assoc :template-sign template-sign)
+                                      classifier-id (assoc :classifier-id classifier-id)))))
+                  :cancel-fn (fn [p] nil)
+                  :minimum-size [480 :by 400]
+                  :option-type :ok-cancel
+                  :content (make-template-form)
+                  )
+      gui/pack!
+      gui/show!))
 
 (comment
 
-  (-> (make-template-dlg :test) gui/pack! gui/show!)
+   (make-template-dlg :test)
 
   )
