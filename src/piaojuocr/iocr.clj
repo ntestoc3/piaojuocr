@@ -1,6 +1,7 @@
 (ns piaojuocr.iocr
   (:require [seesaw.core :as gui]
             [seesaw.border :as border]
+            [seesaw.icon :as icon]
             [seesaw.swingx :as guix]
             [seesaw.mig :refer [mig-panel]]
             [seesaw.font :refer [font default-font]]
@@ -9,7 +10,8 @@
             [piaojuocr.config :as config]
             [piaojuocr.ocr-api :as api]
             [taoensso.timbre :as log]
-            [seesaw.table :as table]))
+            [seesaw.table :as table]
+            [clojure.java.io :as io]))
 
 
 (defn update-template! [root update-fn]
@@ -41,6 +43,7 @@
              :border (border/empty-border :left 10 :top 10)
              :items [
                      [(gui/button :text "添加"
+                                  :icon (io/resource "add.png")
                                   :listen [:action
                                            (fn [e]
                                              (let [root (gui/to-root e)
@@ -52,12 +55,13 @@
                       "wrap"]
 
                      [(gui/button :text "删除"
-                                   :listen [:action
-                                            (fn [e]
-                                              (let [root (gui/to-root e)]
-                                                (some->> (gui/select root [:#iocr-templates-list])
-                                                         gui/selection
-                                                         (remove-template! root))))])
+                                  :icon (io/resource "del.png")
+                                  :listen [:action
+                                           (fn [e]
+                                             (let [root (gui/to-root e)]
+                                               (some->> (gui/select root [:#iocr-templates-list])
+                                                        gui/selection
+                                                        (remove-template! root))))])
                       "wrap"]
                      ])
             "wrap"]

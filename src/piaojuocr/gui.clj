@@ -17,7 +17,8 @@
             [piaojuocr.ocr-api :as ocr-api]
             [taoensso.timbre :as log]
             [piaojuocr.img :as img]
-            [piaojuocr.ocr-api :as api])
+            [piaojuocr.ocr-api :as api]
+            [clojure.java.io :as io])
   (:use com.rpl.specter))
 
 (defn a-open [e]
@@ -288,6 +289,7 @@
   (theme/wrap-theme
    (let [f (gui/frame
             :title "文字识别测试"
+            :icon (io/resource "ocr.png")
             :menubar (make-menus))
          cb (img/image-callback {:fn-updated (make-imagej-updated-cb f)})]
      (gui/listen f :window-closing
@@ -295,8 +297,8 @@
                    (log/info "close frame window.")
                    (if (img/close-all!)
                      (do
-                       (gui/config! f :on-close :exit)
-                       ;; (gui/config! f :on-close :dispose)
+                       ;; (gui/config! f :on-close :exit)
+                       (gui/config! f :on-close :dispose)
                        (img/remove-image-callback cb)
                        (config/save-config!)
                        (log/info "exit over."))
