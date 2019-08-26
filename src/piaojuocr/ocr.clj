@@ -24,37 +24,46 @@
               (case k
                 :probability (transform [MAP-KEYS] format-prob-key v)
                 :location v
-                :words [k v]
-                nil)) wr)
+                [k v])) wr)
        (apply merge)))
 
+(def prob-loc-cols-info '({:key :prob-average :text "置信度平均值"  :class java.lang.Double}
+                          {:key :prob-min :text "置信度最小值"  :class java.lang.Double}
+                          {:key :prob-variance :text "置信度方差"  :class java.lang.Double}
+                          {:key :left :text "X"  :class java.lang.Integer}
+                          {:key :top :text "Y"  :class java.lang.Integer}
+                          {:key :width :text "宽度"  :class java.lang.Integer}
+                          {:key :height :text "高度" :class java.lang.Integer}))
+
 (defn make-ocr-model [ocr-result]
-  [:columns [{:key :words :text "文字"}
-             {:key :prob-average :text "置信度平均值"  :class java.lang.Double}
-             {:key :prob-min :text "置信度最小值"  :class java.lang.Double}
-             {:key :prob-variance :text "置信度方差"  :class java.lang.Double}
-             {:key :left :text "X"  :class java.lang.Integer}
-             {:key :top :text "Y"  :class java.lang.Integer}
-             {:key :width :text "宽度"  :class java.lang.Integer}
-             {:key :height :text "高度" :class java.lang.Integer}]
+  [:columns (conj prob-loc-cols-info {:key :words :text "文字"})
    :rows (transform [ALL] format-word-result (:words-result ocr-result))])
 
-(defn make-view [data id]
-  (gui/scrollable (guix/table-x :id id
-                                :model (make-ocr-model data))))
+(defn make-iocr-model [iocr-result]
+  [:columns (vec (conj prob-loc-cols-info
+                       {:key :word :text "文字"}
+                       {:key :word-name :text "字段名"}))
+   :rows (transform [ALL] format-word-result (get-in iocr-result [:data :ret]))])
 
-(defn set-model! [root id data]
+(defn make-view [model id]
+  (gui/scrollable (guix/table-x :id id
+                                :model model)))
+
+(defn set-model! [root id model]
   (let [tbl (gui/select root [(util/->select-id id)])]
-    (->> (make-ocr-model data)
-         (gui/config! tbl :model))))
+    (gui/config! tbl :model model)))
 
 
 
 (comment
 
+  (gui/native!)
 
-  (show-ui (make-view  api/res4 :table))
+  (show-ui (make-view (make-ocr-model []):table))
 
+  (show-ui (make-view  (make-ocr-model api/res4) :table))
+
+  (show-ui (make-view  (make-iocr-model api/res5) :table))
 
   (transform [ALL :probability ALL FIRST] (fn [k] (keyword (str "prob-" (name k)))) (vec wr))
 

@@ -87,7 +87,7 @@
                  (log/info (str ocr-fn) "words location result count:" (:words-result-num result))
                  (gui/selection! location-menu-item true)
                  (reset! ocr-img (img/deep-copy bimg))
-                 (ocr/set-model! root :main-ocr result))
+                 (ocr/set-model! root :main-ocr (ocr/make-ocr-model result)))
                :json
                (do
                  (log/info (str ocr-fn) "json return.")
@@ -175,7 +175,7 @@
 
 (defn make-pic-ocr-view [frame]
   (let [img-panel (iviewer/make-pic-viewer :main-image)
-        ocr-panel (ocr/make-view [] :main-ocr)
+        ocr-panel (ocr/make-view (ocr/make-ocr-model []) :main-ocr)
         json-panel (mapviewer/make-view nil :main-json)
         table-panel (ocr-table/make-view nil :main-ocr-table)
         ]
