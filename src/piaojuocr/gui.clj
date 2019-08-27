@@ -172,6 +172,9 @@
                                            (ocr-action #'ocr-api/general :location)
                                            (ocr-action #'ocr-api/accurate-general :location)
                                            (ocr-action #'ocr-api/receipt  :location)
+                                           (ocr-action #'ocr-api/web-image :location)
+                                           (ocr-action #'ocr-api/numbers :location)
+                                           (ocr-action #'ocr-api/handwriting :location)
                                            :separator
                                            (ocr-action #'ocr-api/table-recognize-to-json nil "表格识别" :table)
                                            (ocr-action #'ocr-api/vat-invoice :json)
@@ -185,6 +188,7 @@
                                            (ocr-action #'ocr-api/plate-license :json)
                                            (ocr-action #'ocr-api/driving-license :json)
                                            (ocr-action #'ocr-api/bankcard :json)
+                                           (ocr-action #'ocr-api/quota-invoice :json)
                                            :separator
                                            a-show-location-result
                                            a-show-json-result
@@ -193,8 +197,9 @@
                                            :separator
                                            a-ocr-restore])])))
 
-(defn make-pic-ocr-view [frame]
+(defn make-pic-ocr-view
   "创建识别页面视图"
+  [frame]
   (let [img-panel (iviewer/make-pic-viewer :main-image)
         ocr-panel (ocr/make-view (ocr/make-ocr-model []) :main-ocr)
         json-panel (mapviewer/make-view nil :main-json)
@@ -229,8 +234,9 @@
            (map #(table/value-at ocr-tbl %1))
            (draw-image-rects! root)))
 
-(defn ocr-table-sel-draw! [root tbl e]
+(defn ocr-table-sel-draw!
   "表格结果图片框选绘制"
+  [root tbl e]
   (when-let [sels (seq (ocr-table/get-selected-rects tbl))]
     (log/info :ocr-table-sel-draw! sels)
     (draw-image-rects! root sels)))

@@ -24,7 +24,7 @@
               (case k
                 :probability (transform [MAP-KEYS] format-prob-key v)
                 :location v
-                [k v])) wr)
+                {k v})) wr)
        (apply merge)))
 
 (def prob-loc-cols-info [{:key :prob-average :text "置信度平均值"  :class java.lang.Double}
@@ -36,17 +36,15 @@
                          {:key :height :text "高度" :class java.lang.Integer}])
 
 (defn make-ocr-model [ocr-result]
-  (table/table-model
-   :columns (conj (seq prob-loc-cols-info)
-                  {:key :words :text "文字" :class java.lang.String})
-   :rows (transform [ALL] format-word-result (:words-result ocr-result))))
+  [:columns (conj (seq prob-loc-cols-info)
+                   {:key :words :text "文字" :class java.lang.String})
+   :rows (transform [ALL] format-word-result (:words-result ocr-result))])
 
 (defn make-iocr-model [iocr-result]
-  (table/table-model
-   :columns   (conj (seq prob-loc-cols-info)
+  [:columns   (conj (seq prob-loc-cols-info)
                     {:key :word :text "文字"}
                     {:key :word-name :text "字段名"})
-   :rows (transform [ALL] format-word-result (get-in iocr-result [:data :ret]))))
+   :rows (transform [ALL] format-word-result (get-in iocr-result [:data :ret]))])
 
 
 (defn make-view [model id]

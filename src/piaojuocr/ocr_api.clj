@@ -77,10 +77,9 @@
 (defapi drivingLicense "行驶证识别" [file])
 (defapi plateLicense "车牌识别" [file])
 (defapi businessLicense "营业执照识别" [file])
-
-(defn format-table-result [data]
-
-  )
+(defapi webImage "网络图片文字识别" [file])
+(defapi numbers "数字识别" [file])
+(defapi quotaInvoice "定额发票识别" [file])
 
 (defn table-recognize-to-json
   "表格识别"

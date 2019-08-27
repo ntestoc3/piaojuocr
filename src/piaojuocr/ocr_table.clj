@@ -68,8 +68,9 @@
     [:columns cols
      :rows rows]))
 
-(defn get-selected-cells [tbl]
+(defn get-selected-cells
   "获取选中的单元格,返回[[row col]...]"
+  [tbl]
   (for [row (.getSelectedRows tbl)
         col (.getSelectedColumns tbl)]
     [row col]))

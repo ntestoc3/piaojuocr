@@ -33,8 +33,9 @@
       (reset! ij-main (ImageJ.))
       main)))
 
-(defn- unchange! [id]
+(defn- unchange!
   "设置图片为未修改状态"
+  [id]
   (-> (WindowManager/getImage id)
       .changes
       (set! false)))
