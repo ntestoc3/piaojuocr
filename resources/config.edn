@@ -1,1 +1,2 @@
-{:log-level :warn, :use-classifier false}
+{:log-level :warn
+ :use-classifier false}
