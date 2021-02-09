@@ -26,7 +26,7 @@
   (gui/native!))
 
 (defn update-theme! []
-  (-> (config/get-config :theme)
+  (-> (config/get-config :theme "Moderate")
       all-themes
       set-laf))
 
