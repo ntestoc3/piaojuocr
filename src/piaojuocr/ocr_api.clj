@@ -5,15 +5,14 @@
             [taoensso.timbre :as log])
   (:import com.baidu.aip.ocr.AipOcr))
 
-
-(def aip-client (AipOcr.
-                 (config/get-config :app-id)
-                 (config/get-config :api-key)
-                 (config/get-config :api-secret-key)))
-
-(doto aip-client
-  (.setConnectionTimeoutInMillis 2000)
-  (.setSocketTimeoutInMillis 60000))
+(defn new-client
+  []
+  (doto (AipOcr.
+         (config/get-config :app-id)
+         (config/get-config :api-key)
+         (config/get-config :api-secret-key))
+    (.setConnectionTimeoutInMillis 2000)
+    (.setSocketTimeoutInMillis 60000)))
 
 (defn json->map
   [json]
@@ -52,7 +51,8 @@
        ([~@args options#]
         (let [opt#  (format-options options#)]
           (log/info "baidu-ocr api:" ~str-method "options:" opt#)
-          (-> (~method-name aip-client ~@args opt#)
+          (-> (new-client)
+              (~method-name ~@args opt#)
               (doto
                   #(log/trace ~str-method "return raw" %1))
               json->map))))))
@@ -85,7 +85,8 @@
   "表格识别"
   ([file] (table-recognize-to-json file 30000))
   ([file ^java.lang.Long timeout]
-   (some-> (. aip-client tableRecognizeToJson file timeout)
+   (some-> (new-client)
+           (. tableRecognizeToJson file timeout)
            json->map
            (doto
                #(log/trace :table-recognize-to-json "return" %1))
