@@ -1,0 +1,1 @@
+{:iocr-templates #{{:name "中国人民解放军医疗住院收费票据", :id "eecfbc1a6645c46977ed7c5a49dc5c04"} {:name "焦作市人民医院病人住院费用清单", :id "b50b3a7a70cf1f85ed9c07679dd3f20e"} {:name "山东门诊收费", :id "7f191130acbecaa2d06b037d754a4d55"}}, :app-id "16839383", :log-level :debug, :use-classifier false, :theme "Mist Aqua", :api-secret-key "jsmwqoRNX3YnOls70AVgXG7Fb4nafDqf", :api-key "F6fUFb2V93lEtSh0AfiIiknk"}

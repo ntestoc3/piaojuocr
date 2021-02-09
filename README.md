@@ -1,36 +1,12 @@
 # piaojuocr
 
-FIXME: description
+baidu ocr识别api测试, 支持识别结果区域框选, 内置图片编辑器
 
-## Installation
-
-Download from http://example.com/FIXME.
-
-## Usage
-
-FIXME: explanation
-
-    $ java -jar piaojuocr-0.1.0-standalone.jar [args]
-
-## Options
-
-FIXME: listing of options this app accepts.
-
-## Examples
-
-...
-
-### Bugs
-
-...
-
-### Any Other Sections
-### That You Think
-### Might be Useful
+![截图](doc/screen.png)
 
 ## License
 
-Copyright © 2019 FIXME
+Copyright © 2021 ntestoc3
 
 This program and the accompanying materials are made available under the
 terms of the Eclipse Public License 2.0 which is available at
